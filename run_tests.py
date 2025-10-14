@@ -17,8 +17,8 @@ def run_tests(args):
         cmd.append("-v")
     
     if args.visible:
-        # Run with visible browser (use chrome_driver_visible fixture)
-        cmd.extend(["-k", "not headless"])
+        # Run with visible browser (pass --visible flag to pytest)
+        cmd.append("--visible")
     
     if args.coverage:
         cmd.extend(["--cov=.", "--cov-report=html", "--cov-report=term"])

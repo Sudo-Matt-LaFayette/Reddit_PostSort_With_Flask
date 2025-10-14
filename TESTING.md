@@ -103,20 +103,37 @@ test_app
 # Running Flask server on port 5555
 flask_server
 
-# Headless Chrome driver (for CI)
+# Adaptive Chrome driver (recommended - responds to --visible flag)
+driver
+
+# Legacy: Headless Chrome driver (deprecated - use 'driver' instead)
 chrome_driver
 
-# Visible Chrome driver (for debugging)
+# Legacy: Visible Chrome driver (deprecated - use 'driver' with --visible)
 chrome_driver_visible
 ```
 
 ### Using Fixtures
 
+The `driver` fixture automatically adapts based on the `--visible` command-line flag:
+
 ```python
-def test_example(chrome_driver, flask_server):
-    driver = chrome_driver
+def test_example(driver, flask_server):
+    """Use the adaptive driver fixture (recommended)"""
     driver.get(flask_server)
     # Your test code here
+```
+
+**Run with headless browser (default):**
+```bash
+pytest tests/test_ui_basic.py
+python run_tests.py
+```
+
+**Run with visible browser (for debugging):**
+```bash
+pytest tests/test_ui_basic.py --visible
+python run_tests.py --visible
 ```
 
 ## Writing New Tests
@@ -124,9 +141,8 @@ def test_example(chrome_driver, flask_server):
 ### Basic Test Template
 
 ```python
-def test_my_feature(chrome_driver, flask_server):
+def test_my_feature(driver, flask_server):
     """Test description"""
-    driver = chrome_driver
     driver.get(f"{flask_server}/my-page")
     
     # Find element
@@ -145,8 +161,7 @@ def test_my_feature(chrome_driver, flask_server):
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-def test_with_wait(chrome_driver, flask_server):
-    driver = chrome_driver
+def test_with_wait(driver, flask_server):
     driver.get(flask_server)
     
     # Wait for element to be visible

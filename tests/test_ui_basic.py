@@ -11,9 +11,8 @@ import time
 class TestBasicUI:
     """Test basic UI functionality"""
     
-    def test_homepage_loads(self, chrome_driver, flask_server):
+    def test_homepage_loads(self, driver, flask_server):
         """Test that the homepage loads successfully"""
-        driver = chrome_driver
         driver.get(flask_server)
         
         # Check page title
@@ -23,9 +22,8 @@ class TestBasicUI:
         heading = driver.find_element(By.TAG_NAME, "h2")
         assert "Recent Saved Posts" in heading.text
     
-    def test_navbar_elements(self, chrome_driver, flask_server):
+    def test_navbar_elements(self, driver, flask_server):
         """Test that navbar contains all required elements"""
-        driver = chrome_driver
         driver.get(flask_server)
         
         # Check navbar brand
@@ -41,9 +39,8 @@ class TestBasicUI:
         assert "Categories" in nav_text
         assert "Fetch Saved Posts" in nav_text
     
-    def test_categories_page_loads(self, chrome_driver, flask_server):
+    def test_categories_page_loads(self, driver, flask_server):
         """Test that categories page loads"""
-        driver = chrome_driver
         driver.get(f"{flask_server}/categories")
         
         # Check heading
@@ -54,9 +51,8 @@ class TestBasicUI:
         create_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Create Category')]")
         assert create_button is not None
     
-    def test_all_posts_page_loads(self, chrome_driver, flask_server):
+    def test_all_posts_page_loads(self, driver, flask_server):
         """Test that all posts page loads"""
-        driver = chrome_driver
         driver.get(f"{flask_server}/posts")
         
         # Check heading
@@ -71,9 +67,8 @@ class TestBasicUI:
 class TestCategoryManagement:
     """Test category creation and management"""
     
-    def test_create_category_modal_opens(self, chrome_driver, flask_server):
+    def test_create_category_modal_opens(self, driver, flask_server):
         """Test that create category modal can be opened"""
-        driver = chrome_driver
         driver.get(f"{flask_server}/categories")
         
         # Click create category button
@@ -93,9 +88,8 @@ class TestCategoryManagement:
         assert name_input is not None
         assert color_input is not None
     
-    def test_create_category_form_validation(self, chrome_driver, flask_server):
+    def test_create_category_form_validation(self, driver, flask_server):
         """Test that category form validates input"""
-        driver = chrome_driver
         driver.get(f"{flask_server}/categories")
         
         # Open modal
@@ -118,9 +112,8 @@ class TestCategoryManagement:
 class TestToggleFunctionality:
     """Test hide categorized posts toggle"""
     
-    def test_hide_categorized_toggle_exists(self, chrome_driver, flask_server):
+    def test_hide_categorized_toggle_exists(self, driver, flask_server):
         """Test that hide categorized toggle exists on homepage"""
-        driver = chrome_driver
         driver.get(flask_server)
         
         # Check toggle exists
@@ -131,9 +124,8 @@ class TestToggleFunctionality:
         label = driver.find_element(By.XPATH, "//label[@for='hideCategorizedToggle']")
         assert "Hide Categorized" in label.text
     
-    def test_toggle_state_changes(self, chrome_driver, flask_server):
+    def test_toggle_state_changes(self, driver, flask_server):
         """Test that toggle can be checked and unchecked"""
-        driver = chrome_driver
         driver.get(flask_server)
         
         toggle = driver.find_element(By.ID, "hideCategorizedToggle")
@@ -157,10 +149,8 @@ class TestToggleFunctionality:
 class TestResponsiveDesign:
     """Test responsive design elements"""
     
-    def test_mobile_viewport(self, chrome_driver, flask_server):
+    def test_mobile_viewport(self, driver, flask_server):
         """Test that site works on mobile viewport"""
-        driver = chrome_driver
-        
         # Set mobile viewport
         driver.set_window_size(375, 667)  # iPhone size
         driver.get(flask_server)
@@ -172,10 +162,8 @@ class TestResponsiveDesign:
         navbar = driver.find_element(By.CLASS_NAME, "navbar")
         assert navbar is not None
     
-    def test_tablet_viewport(self, chrome_driver, flask_server):
+    def test_tablet_viewport(self, driver, flask_server):
         """Test that site works on tablet viewport"""
-        driver = chrome_driver
-        
         # Set tablet viewport
         driver.set_window_size(768, 1024)  # iPad size
         driver.get(flask_server)
@@ -187,17 +175,15 @@ class TestResponsiveDesign:
 class TestAccessibility:
     """Test basic accessibility features"""
     
-    def test_page_has_title(self, chrome_driver, flask_server):
+    def test_page_has_title(self, driver, flask_server):
         """Test that page has a title"""
-        driver = chrome_driver
         driver.get(flask_server)
         
         assert driver.title != ""
         assert len(driver.title) > 0
     
-    def test_images_have_alt_text(self, chrome_driver, flask_server):
+    def test_images_have_alt_text(self, driver, flask_server):
         """Test that images have alt text"""
-        driver = chrome_driver
         driver.get(flask_server)
         
         images = driver.find_elements(By.TAG_NAME, "img")
@@ -207,9 +193,8 @@ class TestAccessibility:
             alt = img.get_attribute("alt")
             assert alt is not None
     
-    def test_forms_have_labels(self, chrome_driver, flask_server):
+    def test_forms_have_labels(self, driver, flask_server):
         """Test that form inputs have associated labels"""
-        driver = chrome_driver
         driver.get(f"{flask_server}/posts")
         
         # Check filter form

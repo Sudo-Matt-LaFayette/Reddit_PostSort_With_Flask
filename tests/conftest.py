@@ -16,6 +16,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from app import app, db
 
+
+def pytest_addoption(parser):
+    """Add custom command-line options"""
+    parser.addoption(
+        "--visible",
+        action="store_true",
+        default=False,
+        help="Run tests with visible browser (non-headless mode)"
+    )
+
 @pytest.fixture(scope="session")
 def test_app():
     """Create and configure a test Flask app"""
@@ -50,13 +60,19 @@ def flask_server(test_app):
     # Server will stop when main thread exits (daemon=True)
 
 @pytest.fixture(scope="function")
-def chrome_driver():
-    """Setup Chrome WebDriver for UI testing"""
+def driver(request):
+    """Setup Chrome WebDriver - adapts based on --visible flag"""
+    visible = request.config.getoption("--visible")
+    
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run in headless mode for CI
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
+    
+    if not visible:
+        # Headless mode for CI/CD
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+    
     chrome_options.add_argument("--window-size=1920,1080")
     
     # Use webdriver-manager to automatically download correct chromedriver
@@ -69,9 +85,31 @@ def chrome_driver():
     
     driver.quit()
 
+
+# Legacy fixtures for backward compatibility
 @pytest.fixture(scope="function")
-def chrome_driver_visible():
-    """Setup visible Chrome WebDriver for local testing/debugging"""
+def chrome_driver(request):
+    """Legacy headless driver fixture (use 'driver' instead)"""
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+    driver.implicitly_wait(10)
+    
+    yield driver
+    
+    driver.quit()
+
+
+@pytest.fixture(scope="function")
+def chrome_driver_visible(request):
+    """Legacy visible driver fixture (use 'driver' with --visible instead)"""
     chrome_options = Options()
     chrome_options.add_argument("--window-size=1920,1080")
     

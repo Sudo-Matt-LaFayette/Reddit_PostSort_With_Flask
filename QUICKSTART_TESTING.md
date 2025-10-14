@@ -52,6 +52,9 @@ See which parts of your code are tested!
 # Run all tests
 pytest tests/
 
+# Run with visible browser (for debugging)
+pytest tests/ --visible
+
 # Run specific test
 pytest tests/test_ui_basic.py::TestBasicUI::test_homepage_loads
 
@@ -87,9 +90,8 @@ Check out `TESTING.md` for comprehensive documentation!
 ## Quick Test Template
 
 ```python
-def test_my_feature(chrome_driver, flask_server):
+def test_my_feature(driver, flask_server):
     """Test my awesome feature"""
-    driver = chrome_driver
     driver.get(flask_server)
     
     # Find element
@@ -101,6 +103,8 @@ def test_my_feature(chrome_driver, flask_server):
     # Check result
     assert "Success" in driver.page_source
 ```
+
+**Tip:** Use `--visible` flag to see the browser in action while debugging!
 
 Happy Testing! 🎉
 
