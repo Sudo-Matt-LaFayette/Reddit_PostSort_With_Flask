@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Fetching Posts - Reddit Post Sorter{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-sync fa-spin" id="spinnerIcon"></i> 
+                    Fetching Saved Reddit Posts
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Progress Stats -->
+                <div class="row text-center mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">New Posts</h5>
+                                <h2 class="mb-0" id="newPostsCount">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning">Skipped</h5>
+                                <h2 class="mb-0" id="skippedCount">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-info">Total Processed</h5>
+                                <h2 class="mb-0" id="totalCount">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             id="progressBar"
+                             style="width: 0%">
+                            <span id="progressText">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Log -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-terminal"></i> Live Progress Log</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearLog()">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto; background-color: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace;">
+                        <div id="logOutput"></div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="text-center mt-4" id="actionButtons" style="display: none;">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home"></i> Go to Home
+                    </a>
+                    <a href="{{ url_for('posts') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-list"></i> View All Posts
+                    </a>
+                    <button class="btn btn-secondary btn-lg" onclick="fetchAgain()">
+                        <i class="fas fa-redo"></i> Fetch Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const logOutput = document.getElementById('logOutput');
+const newPostsCount = document.getElementById('newPostsCount');
+const skippedCount = document.getElementById('skippedCount');
+const totalCount = document.getElementById('totalCount');
+const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+const spinnerIcon = document.getElementById('spinnerIcon');
+const actionButtons = document.getElementById('actionButtons');
+
+let totalExpected = 100; // We're fetching up to 100 posts
+
+function addLog(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const colors = {
+        'info': '#61afef',
+        'success': '#98c379',
+        'warning': '#e5c07b',
+        'error': '#e06c75',
+        'post_added': '#98c379',
+        'post_skipped': '#abb2bf'
+    };
+    
+    const icons = {
+        'info': '⚡',
+        'success': '✓',
+        'warning': '⚠️',
+        'error': '✗',
+        'post_added': '➕',
+        'post_skipped': '⏭️'
+    };
+    
+    const color = colors[type] || colors['info'];
+    const icon = icons[type] || icons['info'];
+    
+    const logLine = document.createElement('div');
+    logLine.style.marginBottom = '8px';
+    logLine.innerHTML = `<span style="color: #5c6370;">[${timestamp}]</span> <span style="color: ${color};">${icon} ${message}</span>`;
+    
+    logOutput.appendChild(logLine);
+    logOutput.scrollTop = logOutput.scrollHeight;
+}
+
+function updateStats(newPosts, skipped, total) {
+    newPostsCount.textContent = newPosts;
+    skippedCount.textContent = skipped;
+    totalCount.textContent = total;
+    
+    // Update progress bar
+    const percentage = Math.min((total / totalExpected) * 100, 100);
+    progressBar.style.width = percentage + '%';
+    progressText.textContent = Math.round(percentage) + '%';
+}
+
+function clearLog() {
+    logOutput.innerHTML = '';
+}
+
+function fetchAgain() {
+    window.location.reload();
+}
+
+// Connect to Server-Sent Events stream
+const eventSource = new EventSource('{{ url_for("fetch_saved_posts_stream") }}');
+
+eventSource.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    
+    switch(data.type) {
+        case 'info':
+            addLog(data.message, 'info');
+            break;
+        case 'success':
+            addLog(data.message, 'success');
+            break;
+        case 'warning':
+            addLog(data.message, 'warning');
+            break;
+        case 'error':
+            addLog(data.message, 'error');
+            spinnerIcon.className = 'fas fa-exclamation-triangle';
+            actionButtons.style.display = 'block';
+            eventSource.close();
+            break;
+        case 'post_added':
+            addLog(data.message + ' [r/' + data.subreddit + ']', 'post_added');
+            updateStats(data.new, data.skipped, data.total);
+            break;
+        case 'post_skipped':
+            addLog(data.message, 'post_skipped');
+            updateStats(data.new, data.skipped, data.total);
+            break;
+        case 'complete':
+            spinnerIcon.className = 'fas fa-check-circle';
+            progressBar.className = 'progress-bar bg-success';
+            actionButtons.style.display = 'block';
+            eventSource.close();
+            
+            // Show celebration message
+            setTimeout(() => {
+                if (data.new > 0) {
+                    const celebrationMsg = `🎉 Import complete! ${data.new} new post${data.new === 1 ? '' : 's'} added to your collection!`;
+                    addLog(celebrationMsg, 'success');
+                } else {
+                    addLog('All posts were already in your collection. Nothing new to add.', 'info');
+                }
+            }, 500);
+            break;
+    }
+};
+
+eventSource.onerror = function(error) {
+    addLog('Connection error. Please refresh the page and try again.', 'error');
+    spinnerIcon.className = 'fas fa-exclamation-triangle';
+    actionButtons.style.display = 'block';
+    eventSource.close();
+};
+
+// Initial log message
+addLog('Starting fetch process...', 'info');
+</script>
+{% endblock %}

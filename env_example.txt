@@ -1,0 +1,18 @@
+# Reddit API Configuration
+REDDIT_CLIENT_ID=your_client_id_here
+REDDIT_CLIENT_SECRET=your_client_secret_here
+REDDIT_USER_AGENT=RedditSorter/1.0 by YourUsername
+REDDIT_USERNAME=your_reddit_username
+REDDIT_PASSWORD=your_reddit_password
+
+# Flask Configuration
+SECRET_KEY=your-secret-key-here-change-this-in-production
+
+# Instructions:
+# 1. Copy this file to .env
+# 2. Fill in your actual Reddit API credentials
+# 3. To get Reddit API credentials:
+#    - Go to https://www.reddit.com/prefs/apps
+#    - Click "Create App" or "Create Another App"
+#    - Choose "script" as the app type
+#    - Use the client_id and client_secret from your app

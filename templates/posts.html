@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}All Posts - Reddit Post Sorter{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-filter"></i> Filter Posts</h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('posts') }}">
+                    <div class="mb-3">
+                        <label for="category_id" class="form-label">Category</label>
+                        <select name="category_id" id="category_id" class="form-select">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if selected_category_id == category.id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" name="search" id="search" class="form-control" 
+                               placeholder="Search posts..." value="{{ search_term }}">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    <a href="{{ url_for('posts') }}" class="btn btn-outline-secondary w-100 mt-2">Clear</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="fas fa-list"></i> All Posts</h2>
+            <div class="d-flex gap-2 align-items-center">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="hideCategorizedToggle" onchange="toggleCategorizedPosts()">
+                    <label class="form-check-label" for="hideCategorizedToggle" style="font-weight: 500;">
+                        Hide Categorized
+                    </label>
+                </div>
+                <a href="{{ url_for('fetch_saved_posts') }}" class="btn btn-primary me-2">
+                    <i class="fas fa-sync"></i> Fetch New Posts
+                </a>
+                <a href="{{ url_for('categories') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-tags"></i> Manage Categories
+                </a>
+            </div>
+        </div>
+        
+        {% if posts %}
+            <div class="mb-3">
+                <small class="text-muted">
+                    Showing {{ posts|length }} post{{ 's' if posts|length != 1 else '' }}
+                    {% if selected_category_id %}
+                        in category "{{ categories|selectattr('id', 'equalto', selected_category_id)|map(attribute='name')|first }}"
+                    {% elif show_uncategorized == 'true' %}
+                        that are uncategorized
+                    {% endif %}
+                    {% if search_term %}
+                        matching "{{ search_term }}"
+                    {% endif %}
+                </small>
+            </div>
+            
+            {% for post in posts %}
+            <div class="card post-card mb-3" data-has-category="{{ 'true' if post.category else 'false' }}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-1">
+                            {% if post.thumbnail and post.thumbnail != 'self' %}
+                                <img src="{{ post.thumbnail }}" alt="Thumbnail" class="post-thumbnail">
+                            {% elif post.preview_url %}
+                                <img src="{{ post.preview_url }}" alt="Preview" class="post-thumbnail">
+                            {% else %}
+                                <div class="post-thumbnail d-flex align-items-center justify-content-center bg-light">
+                                    <i class="fas fa-link text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-11">
+                            <h5 class="card-title">
+                                <a href="{{ post.url if not post.is_self else post.permalink }}" target="_blank" class="text-decoration-none">
+                                    {{ post.title }}
+                                </a>
+                            </h5>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    Posted by <span class="author-link">{{ post.author }}</span> in 
+                                    <a href="https://reddit.com/r/{{ post.subreddit }}" target="_blank" class="subreddit-link">r/{{ post.subreddit }}</a>
+                                    <span class="stats">
+                                        • {{ post.score }} points • {{ post.num_comments }} comments
+                                        {% if post.created_utc %}
+                                        • {{ post.created_utc.strftime('%Y-%m-%d') }}
+                                        {% endif %}
+                                        • Saved {{ post.saved_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </span>
+                                </small>
+                            </p>
+                            {% if post.selftext %}
+                                <p class="card-text">{{ post.selftext[:300] }}{% if post.selftext|length > 300 %}...{% endif %}</p>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if post.category %}
+                                        <span class="badge category-badge" style="background-color: {{ post.category.color }};">
+                                            {{ post.category.name }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge category-badge bg-secondary">Uncategorized</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-tag"></i> Category
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <form method="POST" action="{{ url_for('assign_category', post_id=post.id) }}" style="display: inline;">
+                                                <button type="submit" class="dropdown-item">
+                                                    <span class="badge bg-secondary me-2">&nbsp;</span> Uncategorized
+                                                </button>
+                                            </form>
+                                        </li>
+                                        {% for category in categories %}
+                                        <li>
+                                            <form method="POST" action="{{ url_for('assign_category', post_id=post.id) }}" style="display: inline;">
+                                                <input type="hidden" name="category_id" value="{{ category.id }}">
+                                                <button type="submit" class="dropdown-item">
+                                                    <span class="badge me-2" style="background-color: {{ category.color }};">&nbsp;</span>
+                                                    {{ category.name }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No posts found</h4>
+                <p class="text-muted">
+                    {% if search_term or selected_category_id or show_uncategorized == 'true' %}
+                        Try adjusting your search criteria or fetch more saved posts.
+                    {% else %}
+                        No saved posts found. Click "Fetch New Posts" to retrieve your saved Reddit posts.
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('fetch_saved_posts') }}" class="btn btn-primary">
+                    <i class="fas fa-sync"></i> Fetch Saved Posts
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleCategorizedPosts() {
+    const checkbox = document.getElementById('hideCategorizedToggle');
+    const isHidden = checkbox.checked;
+    const allPosts = document.querySelectorAll('.post-card');
+    
+    // Save state to localStorage
+    localStorage.setItem('hideCategorizedPosts', isHidden);
+    
+    allPosts.forEach(post => {
+        const hasCategory = post.getAttribute('data-has-category') === 'true';
+        
+        if (isHidden && hasCategory) {
+            // Hide categorized posts with smooth animation
+            post.style.opacity = '0';
+            post.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                post.style.display = 'none';
+            }, 300);
+        } else {
+            // Show all posts with smooth animation
+            post.style.display = 'block';
+            setTimeout(() => {
+                post.style.opacity = '1';
+                post.style.transform = 'scale(1)';
+            }, 10);
+        }
+    });
+    
+    // Update the display message
+    updatePostCount();
+}
+
+function updatePostCount() {
+    const checkbox = document.getElementById('hideCategorizedToggle');
+    const allPosts = document.querySelectorAll('.post-card');
+    const visiblePosts = Array.from(allPosts).filter(post => 
+        post.style.display !== 'none'
+    );
+    
+    // Show a message if all posts are hidden
+    const postContainer = document.querySelector('.col-md-9');
+    let noPostsMsg = document.getElementById('noVisiblePostsMsg');
+    
+    if (visiblePosts.length === 0 && checkbox.checked) {
+        if (!noPostsMsg) {
+            noPostsMsg = document.createElement('div');
+            noPostsMsg.id = 'noVisiblePostsMsg';
+            noPostsMsg.className = 'alert alert-info mt-3';
+            noPostsMsg.innerHTML = '<i class="fas fa-info-circle"></i> All posts are categorized. Uncheck "Hide Categorized" to view them.';
+            
+            // Insert before the empty state or at the end
+            const emptyState = postContainer.querySelector('.text-center.py-5');
+            if (emptyState) {
+                emptyState.before(noPostsMsg);
+            } else {
+                postContainer.appendChild(noPostsMsg);
+            }
+        }
+    } else if (noPostsMsg) {
+        noPostsMsg.remove();
+    }
+}
+
+// Add smooth transition styles to post cards and restore saved state
+document.addEventListener('DOMContentLoaded', function() {
+    const allPosts = document.querySelectorAll('.post-card');
+    allPosts.forEach(post => {
+        post.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    });
+    
+    // Restore toggle state from localStorage
+    const checkbox = document.getElementById('hideCategorizedToggle');
+    const savedState = localStorage.getItem('hideCategorizedPosts');
+    
+    if (savedState === 'true') {
+        checkbox.checked = true;
+        // Apply the filter without animation on page load
+        allPosts.forEach(post => {
+            const hasCategory = post.getAttribute('data-has-category') === 'true';
+            if (hasCategory) {
+                post.style.display = 'none';
+                post.style.opacity = '0';
+                post.style.transform = 'scale(0.95)';
+            }
+        });
+        updatePostCount();
+    }
+});
+</script>
+{% endblock %}
