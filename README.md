@@ -2,6 +2,8 @@
 
 A Python Flask application that uses the PRAW (Python Reddit API Wrapper) to retrieve your saved Reddit posts and allows you to organize them into custom categories. All data is stored locally using SQLite.
 
+<img width="1409" height="583" alt="image" src="https://github.com/user-attachments/assets/f12d77fe-2d21-4a3d-8470-6453a9e996e8" />
+
 ## Features
 
 - 🔄 **Fetch Saved Posts**: Retrieve your saved Reddit posts using PRAW API
