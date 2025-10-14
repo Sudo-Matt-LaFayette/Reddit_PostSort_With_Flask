@@ -9,7 +9,7 @@ import argparse
 
 def run_tests(args):
     """Run tests with specified options"""
-    cmd = ["pytest"]
+    cmd = ["python", "-m", "pytest"]
     
     if args.verbose:
         cmd.append("-vv")

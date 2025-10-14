@@ -71,12 +71,14 @@ class TestCategoryManagement:
         """Test that create category modal can be opened"""
         driver.get(f"{flask_server}/categories")
         
-        # Click create category button
-        create_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Create Category')]")
+        # Wait for and click create category button (using CSS selector for Bootstrap modal trigger)
+        wait = WebDriverWait(driver, 10)
+        create_button = wait.until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-bs-target='#createCategoryModal']"))
+        )
         create_button.click()
         
         # Wait for modal to appear
-        wait = WebDriverWait(driver, 10)
         modal = wait.until(EC.visibility_of_element_located((By.ID, "createCategoryModal")))
         
         assert modal.is_displayed()
@@ -92,12 +94,14 @@ class TestCategoryManagement:
         """Test that category form validates input"""
         driver.get(f"{flask_server}/categories")
         
-        # Open modal
-        create_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Create Category')]")
+        # Wait for and click create category button (using CSS selector for Bootstrap modal trigger)
+        wait = WebDriverWait(driver, 10)
+        create_button = wait.until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-bs-target='#createCategoryModal']"))
+        )
         create_button.click()
         
-        # Wait for modal
-        wait = WebDriverWait(driver, 10)
+        # Wait for modal to appear
         wait.until(EC.visibility_of_element_located((By.ID, "createCategoryModal")))
         
         # Try to submit empty form
