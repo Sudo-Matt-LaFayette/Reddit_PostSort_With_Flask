@@ -11,9 +11,28 @@ This document provides comprehensive information about testing the Reddit Post S
 
 ## Setup
 
-### Install Testing Dependencies
+### Create Virtual Environment (Recommended)
 
 ```bash
+python -m venv venv
+```
+
+**Activate the virtual environment:**
+
+Windows PowerShell:
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+Windows Command Prompt:
+```cmd
+venv\Scripts\activate.bat
+```
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 

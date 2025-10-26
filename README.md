@@ -13,20 +13,38 @@ A Python Flask application that uses the PRAW (Python Reddit API Wrapper) to ret
 
 ## Setup Instructions
 
-### 1. Install Dependencies
+### 1. Create Virtual Environment (Recommended)
+
+```bash
+python -m venv venv
+```
+
+**Activate the virtual environment:**
+
+Windows PowerShell:
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+Windows Command Prompt:
+```cmd
+venv\Scripts\activate.bat
+```
+
+### 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure Reddit API
+### 3. Configure Reddit API
 
 1. Go to [Reddit App Preferences](https://www.reddit.com/prefs/apps)
 2. Click "Create App" or "Create Another App"
 3. Choose "script" as the app type
 4. Note down your `client_id` and `client_secret`
 
-### 3. Set Environment Variables
+### 4. Set Environment Variables
 
 1. Copy `env_example.txt` to `.env` (Windows PowerShell command):
    ```powershell
@@ -51,7 +69,7 @@ SECRET_KEY=your-secret-key-here-change-this-in-production
 - Replace `YourUsername` in `REDDIT_USER_AGENT` with your actual Reddit username
 - Use a strong, random `SECRET_KEY` for production
 
-### 4. Run the Application
+### 5. Run the Application
 
 ```bash
 python app.py

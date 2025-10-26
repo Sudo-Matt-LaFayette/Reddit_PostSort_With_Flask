@@ -9,7 +9,7 @@ on:
 
 jobs:
   ui-tests:
-    runs-on: ubuntu-latest
+    runs-on: [ ubuntu-latest, windows-latest ]
     
     strategy:
       matrix:
@@ -59,14 +59,12 @@ jobs:
     
     - name: Upload test results
       if: always()
-      uses: awalsh128/cache-apt-pkgs-action@v1.4.3
+      uses: actions/upload-artifact@v3
       with:
         name: test-results-${{ matrix.python-version }}
         path: |
           pytest-results.xml
           htmlcov/
-        retention-days: 30
-    
     - name: Comment PR with test results
       if: github.event_name == 'pull_request' && always()
       uses: actions/github-script@v6

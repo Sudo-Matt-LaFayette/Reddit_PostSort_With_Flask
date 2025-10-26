@@ -2,15 +2,34 @@
 
 Get up and running with UI tests in 5 minutes!
 
-## Step 1: Install Test Dependencies
+## Step 1: Create Virtual Environment (Recommended)
 
 ```bash
+python -m venv venv
+```
+
+**Activate the virtual environment:**
+
+Windows PowerShell:
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+Windows Command Prompt:
+```cmd
+venv\Scripts\activate.bat
+```
+
+## Step 2: Install Dependencies
+
+```bash
+pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
 This installs pytest, Selenium, and other testing tools.
 
-## Step 2: Run Your First Test
+## Step 3: Run Your First Test
 
 ```bash
 pytest tests/test_ui_basic.py -v
@@ -18,7 +37,7 @@ pytest tests/test_ui_basic.py -v
 
 You should see tests running and passing! ✅
 
-## Step 3: Run Tests with HTML Report
+## Step 4: Run Tests with HTML Report
 
 ```bash
 python run_tests.py --html
@@ -26,7 +45,7 @@ python run_tests.py --html
 
 Open `test-report.html` in your browser to see a beautiful test report!
 
-## Step 4: Debug with Visible Browser
+## Step 5: Debug with Visible Browser
 
 Want to see what's happening?
 
@@ -36,7 +55,7 @@ python run_tests.py --visible
 
 Chrome will open and you can watch the tests run!
 
-## Step 5: Check Coverage
+## Step 6: Check Coverage
 
 ```bash
 python run_tests.py --coverage
