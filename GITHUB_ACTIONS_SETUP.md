@@ -192,6 +192,18 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from app import app, db
 
 # ============================================
+# COMMAND-LINE OPTIONS
+# ============================================
+def pytest_addoption(parser):
+    """Add custom command-line options"""
+    parser.addoption(
+        "--visible",
+        action="store_true",
+        default=False,
+        help="Run tests with visible browser (non-headless mode)"
+    )
+
+# ============================================
 # FLASK APP FIXTURE
 # ============================================
 @pytest.fixture(scope="session")
@@ -249,22 +261,23 @@ def flask_server(test_app):
 # CHROME DRIVER FIXTURE (HEADLESS)
 # ============================================
 @pytest.fixture(scope="function")
-def chrome_driver():
+def driver(request):
     """
-    Chrome WebDriver for CI/automated testing
+    Chrome WebDriver - adapts based on --visible flag
     
     Scope: function (new driver for each test)
-    Mode: Headless (no visible browser)
+    Mode: Headless by default (use --visible flag for debugging)
     """
+    visible = request.config.getoption("--visible", default=False)
+    
     chrome_options = Options()
     
-    # Headless mode (no GUI)
-    chrome_options.add_argument("--headless")
-    
-    # Required for CI environments
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
+    if not visible:
+        # Headless mode for CI/CD and automated testing
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
     
     # Set window size (important for responsive tests)
     chrome_options.add_argument("--window-size=1920,1080")
@@ -282,15 +295,16 @@ def chrome_driver():
     driver.quit()
 
 # ============================================
-# CHROME DRIVER FIXTURE (VISIBLE)
+# LEGACY FIXTURES (for backward compatibility)
 # ============================================
 @pytest.fixture(scope="function")
-def chrome_driver_visible():
-    """
-    Chrome WebDriver for local debugging
-    
-    Mode: Visible (you can see the browser)
-    """
+def chrome_driver(driver):
+    """Legacy headless driver fixture (use 'driver' instead)"""
+    return driver
+
+@pytest.fixture(scope="function")
+def chrome_driver_visible(request):
+    """Legacy visible driver fixture (use 'driver' with --visible flag instead)"""
     chrome_options = Options()
     chrome_options.add_argument("--window-size=1920,1080")
     
@@ -336,9 +350,8 @@ from selenium.webdriver.support import expected_conditions as EC
 class TestBasicUI:
     """Basic UI tests"""
     
-    def test_homepage_loads(self, chrome_driver, flask_server):
+    def test_homepage_loads(self, driver, flask_server):
         """Test homepage loads successfully"""
-        driver = chrome_driver
         driver.get(flask_server)  # flask_server = "http://127.0.0.1:5555"
         
         # Check title
@@ -370,9 +383,9 @@ name: UI Tests                              # Workflow name (shows in GitHub UI)
 # ============================================
 on:
   push:
-    branches: [ main, develop ]             # Run on pushes to these branches
+    branches: [ main, develop, master ]    # Run on pushes to these branches
   pull_request:
-    branches: [ main ]                      # Run on PRs to main
+    branches: [ main, develop, master ]    # Run on PRs to these branches
   workflow_dispatch:                        # Allow manual trigger from UI
 
 # ============================================
@@ -388,6 +401,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']  # Test on 3 Python versions
+      fail-fast: false                         # Don't stop other jobs if one fails
     
     # ========================================
     # STEPS - Individual tasks
@@ -396,17 +410,17 @@ jobs:
     
     # STEP 1: Get the code
     - name: Checkout code
-      uses: actions/checkout@v3             # Official GitHub action
+      uses: actions/checkout@v4             # Latest version (updated from v3)
     
     # STEP 2: Install Python
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4         # Official Python setup action
+      uses: actions/setup-python@v5         # Latest version (updated from v4)
       with:
         python-version: ${{ matrix.python-version }}
     
     # STEP 3: Cache dependencies (speeds up builds)
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4                # Latest version (updated from v3)
       with:
         path: ~/.cache/pip                  # Where pip caches packages
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements-dev.txt') }}
@@ -428,7 +442,7 @@ jobs:
     
     # STEP 6: Install ChromeDriver
     - name: Install ChromeDriver
-      uses: nanasess/setup-chromedriver@master
+      uses: nanasess/setup-chromedriver@v2  # Updated to v2 (master is deprecated)
     
     # STEP 7: Verify installations
     - name: Display Chrome version
@@ -439,25 +453,27 @@ jobs:
     # STEP 8: Run the tests
     - name: Run UI Tests
       run: |
-        pytest tests/test_ui_basic.py -v --tb=short
+        pytest tests/ -v --tb=short          # Run all tests in tests/ directory
       env:
         PYTHONPATH: ${{ github.workspace }}  # Set Python path to project root
     
     # STEP 9: Upload test results (runs even if tests fail)
     - name: Upload test results
       if: always()                          # CRITICAL: Run even on failure
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4      # Latest version (updated from v3)
       with:
         name: test-results-${{ matrix.python-version }}
         path: |
           pytest-results.xml
           htmlcov/
+          .pytest_cache/
         retention-days: 30                  # Keep for 30 days
+        if-no-files-found: ignore           # Don't fail if no files found
     
     # STEP 10: Comment on PR with results
     - name: Comment PR with test results
       if: github.event_name == 'pull_request' && always()
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7       # Latest version (updated from v6)
       with:
         script: |
           const output = `#### UI Tests 🧪
@@ -556,7 +572,7 @@ ${{ matrix.python-version }}
 
 # Install ChromeDriver
 - name: Install ChromeDriver
-  uses: nanasess/setup-chromedriver@master
+  uses: nanasess/setup-chromedriver@v2  # Updated to v2 (master is deprecated)
 ```
 
 **Why both?**
@@ -566,6 +582,7 @@ ${{ matrix.python-version }}
 **Important:**
 - Order matters: Install Chrome before ChromeDriver
 - webdriver-manager can also handle ChromeDriver, but explicit installation is more reliable in CI
+- The `driver` fixture uses webdriver-manager as a fallback, but explicit CI installation ensures compatibility
 
 ### Section 6: Environment Variables
 
@@ -872,10 +889,13 @@ test_app.run(host='127.0.0.1', port=YOUR_PORT)
 
 **Step 4: Write your first test**
 ```python
-def test_homepage(chrome_driver, flask_server):
-    driver = chrome_driver
+def test_homepage(driver, flask_server):
+    """Note: Use 'driver' fixture (not 'chrome_driver')"""
     driver.get(flask_server)
     assert "Your App Name" in driver.title
+
+# For local debugging with visible browser:
+# pytest tests/ --visible
 ```
 
 **Step 5: Test locally**
@@ -1015,7 +1035,7 @@ Before committing your CI/CD setup:
 
 ---
 
-**Last Updated:** October 14, 2025
+**Last Updated:** November 4, 2025
 **Author:** Development Team
 **Project:** Reddit Post Sorter
 
