@@ -1,0 +1,13 @@
+# Development and Testing Dependencies
+# Note: Using flexible version constraints for better compatibility
+pytest>=7.0.0,<8.0.0
+pytest-flask>=1.2.0
+selenium>=4.0.0,<4.12.0  # Python 3.7 compatible
+webdriver-manager>=3.8.0
+pytest-selenium>=4.0.0
+pytest-html>=3.1.0
+coverage>=6.5.0
+pytest-cov>=3.0.0
+black>=22.0.0; python_version >= '3.8'  # Python 3.8+ only
+flake8>=5.0.0
+
