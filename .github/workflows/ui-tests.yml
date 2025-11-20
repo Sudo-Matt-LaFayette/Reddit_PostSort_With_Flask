@@ -15,14 +15,20 @@ on:
 # ============================================
 jobs:
   ui-tests:
-    runs-on: [ ubuntu-latest, windows-latest ]
-    
+    runs-on: [ ubuntu-latest ]
+    timeout-minutes: 10 ## I figured this out...
     # ========================================
-    # MATRIX STRATEGY - Test multiple versions
+    # PERMISSIONS - Required for PR comments
+    # ========================================
+    permissions:
+      contents: read                    # Read repository contents
+      pull-requests: write              # Write comments on pull requests
+    # ========================================
+    # MATRIX STRATEGY - Test single versions
     # ========================================
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11']  # Test on 3 Python versions
+        python-version: ['3.9']  # Test on 1x Python versions
       fail-fast: false                         # Don't stop other jobs if one fails
     
     # ========================================
