@@ -18,6 +18,12 @@ jobs:
     runs-on: [ ubuntu-latest ]
     timeout-minutes: 10 ## I figured this out...
     # ========================================
+    # PERMISSIONS - Required for PR comments
+    # ========================================
+    permissions:
+      contents: read                    # Read repository contents
+      pull-requests: write              # Write comments on pull requests
+    # ========================================
     # MATRIX STRATEGY - Test single versions
     # ========================================
     strategy:
