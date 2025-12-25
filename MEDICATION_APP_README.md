@@ -29,11 +29,19 @@ The application will be available at `http://localhost:5001`
 
 ### 3. Default Login Credentials
 
-On first run, a default admin user is created:
+On first run, default users are created:
+
+**Admin User:**
 - **Username**: `admin`
 - **Password**: `admin123`
+- **Role**: Doctor
 
-**⚠️ Important**: Change the default password in production!
+**Developer User:**
+- **Username**: `developer`
+- **Password**: `dev123`
+- **Role**: Doctor
+
+**⚠️ Important**: Change the default passwords in production!
 
 ## Usage
 

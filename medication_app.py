@@ -329,12 +329,31 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         
-        # Create a default admin user if no users exist
+        # Create default users if no users exist
         if User.query.count() == 0:
+            # Create admin user
             admin = User(username='admin', email='admin@example.com', role='doctor')
             admin.set_password('admin123')
             db.session.add(admin)
+            
+            # Create developer user
+            developer = User(username='developer', email='developer@example.com', role='doctor')
+            developer.set_password('dev123')
+            db.session.add(developer)
+            
             db.session.commit()
-            print("Default admin user created: username='admin', password='admin123'")
+            print("=" * 60)
+            print("Default users created:")
+            print("  Admin:      username='admin'      password='admin123'")
+            print("  Developer:  username='developer' password='dev123'")
+            print("=" * 60)
+        else:
+            # Check if developer user exists, create if not
+            if not User.query.filter_by(username='developer').first():
+                developer = User(username='developer', email='developer@example.com', role='doctor')
+                developer.set_password('dev123')
+                db.session.add(developer)
+                db.session.commit()
+                print("Developer user created: username='developer', password='dev123'")
     
     app.run(debug=True, port=5001)

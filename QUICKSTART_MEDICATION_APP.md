@@ -14,7 +14,8 @@
 
 3. **Access the app:**
    - Open your browser to: `http://localhost:5001`
-   - Default login: `admin` / `admin123`
+   - **Developer login**: `developer` / `dev123` (recommended for development)
+   - **Admin login**: `admin` / `admin123`
 
 ## First Steps
 

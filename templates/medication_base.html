@@ -178,9 +178,17 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user"></i> {{ current_user.username }}
+                            {% if current_user.username == 'developer' %}
+                                <span class="badge bg-info ms-1" style="font-size: 0.7rem;">DEV</span>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text"><small>Role: {{ current_user.role }}</small></span></li>
+                            <li><span class="dropdown-item-text">
+                                <small>Role: {{ current_user.role }}</small>
+                                {% if current_user.username == 'developer' %}
+                                    <br><small class="text-info"><i class="fas fa-code"></i> Developer Account</small>
+                                {% endif %}
+                            </span></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                         </ul>
