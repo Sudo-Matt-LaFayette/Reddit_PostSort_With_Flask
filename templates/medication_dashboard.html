@@ -1,0 +1,156 @@
+{% extends "medication_base.html" %}
+
+{% block title %}Dashboard - Medication Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
+        <p class="text-muted">Overview of your medication tracking</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Medications</h6>
+                        <div class="stat-number">{{ total_medications }}</div>
+                    </div>
+                    <div class="text-primary" style="font-size: 3rem; opacity: 0.2;">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="border-left-color: var(--accent-color);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Daily Medications</h6>
+                        <div class="stat-number" style="color: var(--accent-color);">{{ daily_count }}</div>
+                    </div>
+                    <div class="text-success" style="font-size: 3rem; opacity: 0.2;">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="border-left-color: #f59e0b;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Weekly Medications</h6>
+                        <div class="stat-number" style="color: #f59e0b;">{{ frequency_stats.get('weekly', 0) }}</div>
+                    </div>
+                    <div style="font-size: 3rem; opacity: 0.2; color: #f59e0b;">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="border-left-color: var(--danger-color);">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">As Needed</h6>
+                        <div class="stat-number" style="color: var(--danger-color);">{{ frequency_stats.get('as_needed', 0) }}</div>
+                    </div>
+                    <div style="font-size: 3rem; opacity: 0.2; color: var(--danger-color);">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Recent Medications</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_medications %}
+                    <div class="list-group">
+                        {% for medication in recent_medications %}
+                        <div class="list-group-item medication-card">
+                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        <a href="{{ url_for('medication_detail', medication_id=medication.id) }}" class="text-decoration-none">
+                                            {{ medication.name }}
+                                        </a>
+                                    </h6>
+                                    <p class="mb-1">
+                                        <span class="badge frequency-badge">{{ medication.get_frequency_display() }}</span>
+                                        {% if medication.dosage_amount %}
+                                            <span class="text-muted ms-2">{{ medication.dosage_amount }}</span>
+                                        {% endif %}
+                                    </p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i> Added {{ medication.created_at.strftime('%B %d, %Y') }}
+                                    </small>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('edit_medication', medication_id=medication.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-pills fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No medications yet. <a href="{{ url_for('new_medication') }}">Add your first medication</a></p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Frequency Distribution</h5>
+            </div>
+            <div class="card-body">
+                {% if frequency_stats %}
+                    <ul class="list-unstyled mb-0">
+                        {% for freq_type, count in frequency_stats.items() %}
+                        <li class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-capitalize">{{ freq_type.replace('_', ' ') }}</span>
+                                <span class="badge bg-primary">{{ count }}</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ (count / total_medications * 100) if total_medications > 0 else 0 }}%"></div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center">No data available</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-body text-center">
+                <a href="{{ url_for('new_medication') }}" class="btn btn-success btn-lg w-100">
+                    <i class="fas fa-plus-circle"></i> Add New Medication
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

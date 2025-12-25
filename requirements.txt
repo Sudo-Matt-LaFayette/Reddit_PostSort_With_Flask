@@ -4,3 +4,4 @@ SQLAlchemy==2.0.21
 Flask-SQLAlchemy==3.0.5
 python-dotenv==0.21.1
 Werkzeug==2.2.3
+Flask-Login==0.6.3

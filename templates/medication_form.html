@@ -1,0 +1,111 @@
+{% extends "medication_base.html" %}
+
+{% block title %}{% if medication %}Edit{% else %}Add{% endif %} Medication - Medication Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-{% if medication %}edit{% else %}plus-circle{% endif %}"></i>
+                    {% if medication %}Edit{% else %}Add New{% endif %} Medication
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% if medication %}{{ url_for('edit_medication', medication_id=medication.id) }}{% else %}{{ url_for('new_medication') }}{% endif %}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Medication Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{% if medication %}{{ medication.name }}{% endif %}" required>
+                        <small class="text-muted">e.g., Aspirin, Metformin, Ibuprofen</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dosage_amount" class="form-label">Dosage Amount</label>
+                            <input type="text" class="form-control" id="dosage_amount" name="dosage_amount" 
+                                   value="{% if medication %}{{ medication.dosage_amount }}{% endif %}"
+                                   placeholder="e.g., 500mg, 2 tablets">
+                            <small class="text-muted">Amount per dose</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="dosage_count" class="form-label">Number of Dosages</label>
+                            <input type="number" class="form-control" id="dosage_count" name="dosage_count" 
+                                   value="{% if medication %}{{ medication.dosage_count }}{% else %}1{% endif %}" 
+                                   min="1" required>
+                            <small class="text-muted">How many times to take</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="frequency_type" class="form-label">Frequency Type</label>
+                        <select class="form-select" id="frequency_type" name="frequency_type" required>
+                            <option value="daily" {% if medication and medication.frequency_type == 'daily' %}selected{% endif %}>Daily</option>
+                            <option value="weekly" {% if medication and medication.frequency_type == 'weekly' %}selected{% endif %}>Weekly</option>
+                            <option value="as_needed" {% if medication and medication.frequency_type == 'as_needed' %}selected{% endif %}>As Needed</option>
+                            <option value="custom" {% if medication and medication.frequency_type == 'custom' %}selected{% endif %}>Custom</option>
+                        </select>
+                    </div>
+
+                    <div class="row" id="frequency-details">
+                        <div class="col-md-6 mb-3">
+                            <label for="frequency_value" class="form-label">Frequency Value</label>
+                            <input type="number" class="form-control" id="frequency_value" name="frequency_value" 
+                                   value="{% if medication %}{{ medication.frequency_value }}{% else %}1{% endif %}" 
+                                   min="1" required>
+                            <small class="text-muted">e.g., 3 for "3 times"</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="frequency_unit" class="form-label">Frequency Unit</label>
+                            <select class="form-select" id="frequency_unit" name="frequency_unit" required>
+                                <option value="per day" {% if medication and medication.frequency_unit == 'per day' %}selected{% endif %}>Per Day</option>
+                                <option value="per week" {% if medication and medication.frequency_unit == 'per week' %}selected{% endif %}>Per Week</option>
+                                <option value="hours" {% if medication and medication.frequency_unit == 'hours' %}selected{% endif %}>Hours</option>
+                                <option value="every 8 hours" {% if medication and medication.frequency_unit == 'every 8 hours' %}selected{% endif %}>Every 8 Hours</option>
+                                <option value="every 12 hours" {% if medication and medication.frequency_unit == 'every 12 hours' %}selected{% endif %}>Every 12 Hours</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Additional notes about this medication...">{% if medication %}{{ medication.notes }}{% endif %}</textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> {% if medication %}Update{% else %}Add{% endif %} Medication
+                        </button>
+                        <a href="{{ url_for('medications') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Hide frequency details for "as_needed"
+    const frequencyType = document.getElementById('frequency_type');
+    const frequencyDetails = document.getElementById('frequency-details');
+    
+    function toggleFrequencyDetails() {
+        if (frequencyType.value === 'as_needed') {
+            frequencyDetails.style.display = 'none';
+            document.getElementById('frequency_value').value = 1;
+            document.getElementById('frequency_unit').value = 'per day';
+        } else {
+            frequencyDetails.style.display = 'block';
+        }
+    }
+    
+    frequencyType.addEventListener('change', toggleFrequencyDetails);
+    toggleFrequencyDetails(); // Initial call
+</script>
+{% endblock %}
