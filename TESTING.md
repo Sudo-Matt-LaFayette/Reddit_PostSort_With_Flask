@@ -1,6 +1,6 @@
 # Testing Documentation
 
-This document provides comprehensive information about testing the Reddit Post Sorter application.
+This document provides comprehensive information about testing the Flask Weather Station application.
 
 ## Test Framework
 
@@ -105,11 +105,9 @@ python run_tests.py -v --coverage --html
 
 ### Test Classes
 
-1. **TestBasicUI** - Tests for basic page loading and navigation
-2. **TestCategoryManagement** - Tests for category CRUD operations
-3. **TestToggleFunctionality** - Tests for hide categorized posts toggle
-4. **TestResponsiveDesign** - Tests for mobile/tablet viewports
-5. **TestAccessibility** - Tests for accessibility compliance
+1. **TestBasicUI** - Tests for core weather UI sections
+2. **TestStatusAndAccessibility** - Status banner + alt text checks
+3. **TestResponsiveDesign** - Tests for mobile/tablet viewports
 
 ## Fixtures
 
@@ -345,7 +343,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 - [ ] Test file upload functionality
 - [ ] Test error handling and validation
 - [ ] Test performance (page load times)
-- [ ] Test with mock Reddit API data
+- [ ] Test with mock weather API data
 - [ ] Visual regression testing with screenshots
 - [ ] Test keyboard navigation
 - [ ] Test screen reader compatibility

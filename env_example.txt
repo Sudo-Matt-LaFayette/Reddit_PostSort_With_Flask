@@ -1,18 +1,22 @@
-# Reddit API Configuration
-REDDIT_CLIENT_ID=your_client_id_here
-REDDIT_CLIENT_SECRET=your_client_secret_here
-REDDIT_USER_AGENT=RedditSorter/1.0 by YourUsername
-REDDIT_USERNAME=your_reddit_username
-REDDIT_PASSWORD=your_reddit_password
+# Weather API Configuration
+MAPBOX_ACCESS_TOKEN=your_mapbox_access_token
+TOMORROW_API_KEY=your_tomorrow_api_key
+
+# Default Location (used when no search is provided)
+DEFAULT_LOCATION=Dallas, Texas
+DEFAULT_UNITS=imperial
+DEFAULT_LAT=32.7767
+DEFAULT_LON=-96.7970
 
 # Flask Configuration
 SECRET_KEY=your-secret-key-here-change-this-in-production
 
+# Optional Settings
+WEATHER_USE_SAMPLE=false
+WEATHER_CACHE_SECONDS=600
+
 # Instructions:
 # 1. Copy this file to .env
-# 2. Fill in your actual Reddit API credentials
-# 3. To get Reddit API credentials:
-#    - Go to https://www.reddit.com/prefs/apps
-#    - Click "Create App" or "Create Another App"
-#    - Choose "script" as the app type
-#    - Use the client_id and client_secret from your app
+# 2. Fill in your Mapbox + Tomorrow.io API keys
+# 3. Mapbox token: https://account.mapbox.com/access-tokens/
+# 4. Tomorrow.io key: https://app.tomorrow.io/development/keys

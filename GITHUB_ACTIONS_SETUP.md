@@ -73,7 +73,7 @@ your-project/
 ### Directory Layout
 
 ```
-Reddit Sort Python Flask/
+Flask Weather Station/
 │
 ├── .github/                          # GitHub-specific files
 │   └── workflows/                    # GitHub Actions workflows
@@ -215,20 +215,8 @@ def test_app():
     """
     # Configure for testing
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test_reddit_sorter.db'
-    app.config['WTF_CSRF_ENABLED'] = False
-    
-    # Create test database
-    with app.app_context():
-        db.create_all()
-        yield app
-        
-        # Cleanup after all tests
-        db.session.remove()
-        db.drop_all()
-        
-        if os.path.exists('test_reddit_sorter.db'):
-            os.remove('test_reddit_sorter.db')
+    app.config['TESTING'] = True
+    yield app
 
 # ============================================
 # FLASK SERVER FIXTURE
@@ -355,7 +343,7 @@ class TestBasicUI:
         driver.get(flask_server)  # flask_server = "http://127.0.0.1:5555"
         
         # Check title
-        assert "Reddit Post Sorter" in driver.title
+        assert "Weather" in driver.title
         
         # Check heading exists
         heading = driver.find_element(By.TAG_NAME, "h2")
@@ -593,7 +581,7 @@ env:
 
 **What is `github.workspace`?**
 - Path to your repository on the runner
-- Example: `/home/runner/work/reddit-post-sorter/reddit-post-sorter`
+- Example: `/home/runner/work/flask-weather-station/flask-weather-station`
 
 **Why set PYTHONPATH?**
 - Ensures Python can import your modules
@@ -691,7 +679,7 @@ driver.implicitly_wait(TIMEOUT)
 from dotenv import load_dotenv
 load_dotenv()  # Only loads if .env exists
 
-REDDIT_CLIENT_ID = os.getenv('REDDIT_CLIENT_ID', 'test_id')
+MAPBOX_ACCESS_TOKEN = os.getenv('MAPBOX_ACCESS_TOKEN', 'test_token')
 ```
 
 ---
@@ -771,7 +759,7 @@ PermissionError: [Errno 13] Permission denied: 'chromedriver'
   run: chmod +x $(which chromedriver)
 ```
 
-#### Issue 5: Database locked
+#### Issue 5: Database locked (only if your app uses a DB)
 
 **Error:**
 ```
@@ -779,20 +767,8 @@ sqlite3.OperationalError: database is locked
 ```
 
 **Solution:**
-```python
-# Use separate test database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test_db.db'
-
-# Cleanup after each test
-@pytest.fixture(scope="function")
-def clean_db(test_app):
-    with test_app.app_context():
-        db.drop_all()
-        db.create_all()
-    yield
-    with test_app.app_context():
-        db.session.remove()
-```
+- Use a separate test database for automated runs
+- Reset the database state between tests if the app persists data
 
 ---
 
@@ -932,8 +908,8 @@ git push
 1. Go to repository Settings
 2. Click "Secrets and variables" → "Actions"
 3. Click "New repository secret"
-4. Name: `REDDIT_CLIENT_ID`
-5. Value: Your actual client ID
+4. Name: `MAPBOX_ACCESS_TOKEN`
+5. Value: Your Mapbox token
 6. Click "Add secret"
 
 ### Using Secrets in Workflow
@@ -941,8 +917,8 @@ git push
 ```yaml
 - name: Run tests
   env:
-    REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-    REDDIT_SECRET: ${{ secrets.REDDIT_SECRET }}
+    MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
+    TOMORROW_API_KEY: ${{ secrets.TOMORROW_API_KEY }}
   run: pytest tests/
 ```
 
@@ -950,7 +926,7 @@ git push
 
 ```python
 import os
-client_id = os.getenv('REDDIT_CLIENT_ID')
+mapbox_token = os.getenv('MAPBOX_ACCESS_TOKEN')
 ```
 
 ---
@@ -1037,7 +1013,7 @@ Before committing your CI/CD setup:
 
 **Last Updated:** November 4, 2025
 **Author:** Development Team
-**Project:** Reddit Post Sorter
+**Project:** Flask Weather Station
 
 *This document can be copied and adapted for any Python web application project requiring UI testing with GitHub Actions.*
 

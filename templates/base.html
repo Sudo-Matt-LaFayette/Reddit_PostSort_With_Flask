@@ -3,482 +3,374 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Reddit Post Sorter{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>{% block title %}Weather Station{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #6366f1;
-            --primary-hover: #4f46e5;
-            --accent-color: #ff6b35;
-            --dark-bg: #1a1a2e;
-            --darker-bg: #16161f;
-            --card-bg: #ffffff;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --border-color: #e5e7eb;
-            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --bg: #0b0f16;
+            --panel: #1a1f2b;
+            --panel-strong: #232a3a;
+            --panel-muted: #141821;
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f2f4f8;
+            --text-muted: #a6b0c3;
+            --accent: #3fb5ff;
+            --accent-soft: rgba(63, 181, 255, 0.2);
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            margin: 0;
+            background: radial-gradient(circle at top, #141a25 0%, var(--bg) 45%, #080b12 100%);
+            color: var(--text);
+            font-family: "Inter", system-ui, -apple-system, sans-serif;
             min-height: 100vh;
         }
 
-        /* Navbar Styling */
-        .navbar {
-            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%) !important;
-            box-shadow: var(--shadow-md);
-            padding: 1rem 0;
+        .app-shell {
+            padding: 24px;
         }
 
-        .navbar-brand {
+        .dashboard {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+            gap: 24px;
+            align-items: stretch;
+            min-height: calc(100vh - 48px);
+        }
+
+        .map-panel {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            background: var(--panel-muted);
+            box-shadow: var(--shadow);
+        }
+
+        .map-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1b2230 0%, #0b111a 60%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 32px;
+        }
+
+        .map-placeholder h3 {
+            margin: 0 0 8px;
+            font-size: 1.1rem;
+        }
+
+        .map-placeholder p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 18px;
+            left: 18px;
+            display: grid;
+            gap: 8px;
+            z-index: 2;
+        }
+
+        .map-control-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(15, 20, 30, 0.8);
+            color: var(--text);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .map-control-button:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .map-footer {
+            position: absolute;
+            bottom: 16px;
+            left: 18px;
+            background: rgba(10, 14, 22, 0.7);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .info-panel {
+            background: var(--panel);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .date-time {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .date-time .date {
+            font-size: 0.85rem;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .date-time .time {
+            font-size: 2.4rem;
             font-weight: 700;
-            font-size: 1.4rem;
-            letter-spacing: -0.5px;
         }
 
-        .navbar-brand i {
-            color: var(--accent-color);
-            margin-right: 8px;
+        .sun-times {
+            display: flex;
+            gap: 16px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
         }
 
-        .nav-link {
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border-radius: 8px;
-            margin: 0 4px;
-            padding: 0.5rem 1rem !important;
+        .status-banner {
+            background: var(--accent-soft);
+            border: 1px solid rgba(63, 181, 255, 0.5);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
         }
 
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--accent-color) !important;
+        .location-form {
+            display: grid;
+            gap: 10px;
+            background: var(--panel-strong);
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
         }
 
-        .nav-link i {
+        .location-form label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .location-form input,
+        .location-form select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0f141d;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .location-form button {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            background: var(--accent);
+            color: #0c111a;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .current-block {
+            background: var(--panel-strong);
+            border-radius: 18px;
+            padding: 18px;
+            display: grid;
+            gap: 18px;
+            border: 1px solid var(--border);
+        }
+
+        .current-location {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .current-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .current-temp {
+            font-size: 3.2rem;
+            font-weight: 700;
+        }
+
+        .current-condition {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .current-condition i {
+            color: var(--accent);
+        }
+
+        .current-meta {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(12, 16, 24, 0.6);
+        }
+
+        .stat-item i {
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .daily-section {
+            display: grid;
+            gap: 12px;
+        }
+
+        .daily-section .section-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .daily-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .day-card {
+            border-radius: 16px;
+            background: rgba(12, 16, 24, 0.8);
+            padding: 14px;
+            border: 1px solid var(--border);
+            display: grid;
+            gap: 8px;
+        }
+
+        .day-card .day-name {
+            font-weight: 600;
+        }
+
+        .day-card .day-date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .day-condition {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .day-condition i {
+            color: var(--accent);
+        }
+
+        .day-temps {
+            display: grid;
+            gap: 4px;
+            font-size: 0.9rem;
+        }
+
+        .day-sun {
+            display: grid;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .day-sun i {
+            color: var(--accent);
             margin-right: 6px;
         }
 
-        /* Card Styling */
-        .card {
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
-            background: var(--card-bg);
-            overflow: hidden;
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .map-panel {
+                min-height: 360px;
+            }
         }
 
-        .card:hover {
-            box-shadow: var(--shadow-lg);
-        }
+        @media (max-width: 600px) {
+            .app-shell {
+                padding: 16px;
+            }
 
-        .card-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-            border: none;
-            padding: 1.25rem 1.5rem;
-            font-weight: 600;
-        }
+            .date-time .time {
+                font-size: 2rem;
+            }
 
-        /* Post Card Styling */
-        .post-card {
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            background: var(--card-bg);
-            overflow: visible !important;
-        }
-
-        .post-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            z-index: 2;
-            border-color: var(--primary-color);
-        }
-
-        /* When dropdown is shown, ensure card is on top */
-        .post-card:has(.dropdown-menu.show) {
-            z-index: 1000 !important;
-        }
-
-        .post-card .card-body {
-            padding: 1.5rem;
-            overflow: visible !important;
-        }
-
-        .post-card .row {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            overflow: visible !important;
-        }
-
-        .post-card .row > [class*="col-"] {
-            flex-shrink: 0;
-        }
-
-        .post-card .dropdown {
-            position: relative;
-            z-index: 1;
-        }
-
-        .post-card .dropdown-menu {
-            position: absolute;
-            z-index: 9999 !important;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
-            border: 1px solid var(--border-color);
-            right: 0 !important;
-            left: auto !important;
-            margin-top: 0.5rem;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .post-card .dropdown-menu.show {
-            display: block;
-            z-index: 9999 !important;
-        }
-
-        .post-card .card-title {
-            margin-bottom: 0.75rem;
-            line-height: 1.4;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .post-card .card-title a {
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 1.05rem;
-            transition: color 0.2s ease;
-            display: block;
-        }
-
-        .post-card .card-title a:hover {
-            color: var(--primary-color);
-        }
-
-        .post-card .card-text {
-            margin-bottom: 0.75rem;
-            line-height: 1.6;
-        }
-
-        .post-thumbnail {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 12px;
-            border: 2px solid var(--border-color);
-        }
-
-        /* Badge Styling */
-        .category-badge {
-            font-size: 0.75rem;
-            padding: 0.35rem 0.75rem;
-            font-weight: 600;
-            border-radius: 20px;
-            letter-spacing: 0.3px;
-        }
-
-        /* Button Styling */
-        .btn {
-            font-weight: 600;
-            border-radius: 10px;
-            padding: 0.5rem 1.25rem;
-            transition: all 0.3s ease;
-            border: none;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-            box-shadow: 0 4px 6px rgba(99, 102, 241, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(99, 102, 241, 0.4);
-            background: linear-gradient(135deg, var(--primary-hover) 0%, #3730a3 100%);
-        }
-
-        .btn-outline-primary {
-            border: 2px solid var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .btn-outline-primary:hover {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-
-        .btn-outline-secondary {
-            border: 2px solid var(--border-color);
-            color: var(--text-secondary);
-        }
-
-        .btn-outline-secondary:hover {
-            background: var(--text-secondary);
-            border-color: var(--text-secondary);
-            color: white;
-        }
-
-        /* Links */
-        .subreddit-link {
-            color: var(--accent-color);
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .subreddit-link:hover {
-            color: #ff8c61;
-            text-decoration: underline;
-        }
-
-        .author-link {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .author-link:hover {
-            color: var(--primary-hover);
-            text-decoration: underline;
-        }
-
-        .stats {
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        /* List Group */
-        .list-group-item {
-            border: 1px solid var(--border-color);
-            transition: all 0.2s ease;
-            border-radius: 8px !important;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .list-group-item:hover {
-            background: #f9fafb;
-            border-color: var(--primary-color);
-            transform: translateX(4px);
-        }
-
-        .list-group-item-action {
-            color: var(--text-primary);
-        }
-
-        /* Alert Styling */
-        .alert {
-            border-radius: 12px;
-            border: none;
-            font-weight: 500;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            color: #065f46;
-        }
-
-        .alert-danger {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            color: #991b1b;
-        }
-
-        /* Dropdown */
-        .dropdown-item {
-            font-weight: 500;
-            border-radius: 8px;
-            margin: 4px 8px;
-            transition: all 0.2s ease;
-        }
-
-        .dropdown-item:hover {
-            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-            color: var(--primary-color);
-        }
-
-        /* Container */
-        .container {
-            max-width: 1200px;
-        }
-
-        /* Empty State */
-        .text-center i.fa-3x {
-            color: var(--text-secondary);
-            opacity: 0.5;
-        }
-
-        /* Smooth scrollbar */
-        ::-webkit-scrollbar {
-            width: 12px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-hover);
-        }
-
-        /* Custom Toggle Switch */
-        .form-check-input {
-            width: 3rem;
-            height: 1.5rem;
-            cursor: pointer;
-            border: 2px solid var(--border-color);
-            background-color: #e5e7eb;
-            transition: all 0.3s ease;
-        }
-
-        .form-check-input:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-        }
-
-        .form-check-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
-        }
-
-        .form-check-label {
-            cursor: pointer;
-            color: var(--text-primary);
-            user-select: none;
-        }
-
-        .d-flex.gap-2 {
-            gap: 1rem;
+            .current-temp {
+                font-size: 2.6rem;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fab fa-reddit"></i> Reddit Post Sorter
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="fas fa-home"></i> Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('posts') }}">
-                            <i class="fas fa-list"></i> All Posts
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('categories') }}">
-                            <i class="fas fa-tags"></i> Categories
-                        </a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('fetch_saved_posts') }}">
-                            <i class="fas fa-sync"></i> Fetch Saved Posts
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
+    <div class="app-shell">
         {% block content %}{% endblock %}
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Ensure dropdown menus appear on top of other cards
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropdowns = document.querySelectorAll('.post-card .dropdown');
-            
-            dropdowns.forEach(dropdown => {
-                const button = dropdown.querySelector('[data-bs-toggle="dropdown"]');
-                
-                if (button) {
-                    button.addEventListener('click', function(e) {
-                        const card = this.closest('.post-card');
-                        const menu = this.nextElementSibling;
-                        
-                        // Reset all cards
-                        document.querySelectorAll('.post-card').forEach(c => {
-                            c.style.zIndex = '';
-                        });
-                        
-                        if (card) {
-                            // Set this card to highest z-index
-                            card.style.zIndex = '9999';
-                            card.style.position = 'relative';
-                        }
-                        
-                        if (menu) {
-                            menu.style.zIndex = '10000';
-                        }
-                    });
-                }
-                
-                dropdown.addEventListener('show.bs.dropdown', function() {
-                    const card = this.closest('.post-card');
-                    const menu = this.querySelector('.dropdown-menu');
-                    if (card) {
-                        card.style.zIndex = '9999';
-                        card.style.position = 'relative';
-                    }
-                    if (menu) {
-                        menu.style.zIndex = '10000';
-                    }
-                });
-                
-                dropdown.addEventListener('hide.bs.dropdown', function() {
-                    const card = this.closest('.post-card');
-                    if (card) {
-                        // Reset to default z-index after a short delay
-                        setTimeout(() => {
-                            card.style.zIndex = '';
-                        }, 300);
-                    }
-                });
-            });
-        });
-    </script>
-    {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -58,7 +58,6 @@ instance/
 htmlcov/
 test-report.html
 pytest-results.xml
-test_reddit_sorter.db
 *.png
 *.jpg
 screenshots/

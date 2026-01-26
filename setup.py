@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for Reddit Post Sorter
+Setup script for Flask Weather Station
 """
 
 import os
@@ -29,7 +29,7 @@ def create_env_file():
             with open('env_example.txt', 'r') as src, open('.env', 'w') as dst:
                 dst.write(src.read())
             print("✓ Created .env file from template")
-            print("⚠️  Please edit .env file with your Reddit API credentials")
+            print("⚠️  Please edit .env file with your API credentials")
             return True
         except Exception as e:
             print(f"✗ Error creating .env file: {e}")
@@ -40,7 +40,7 @@ def create_env_file():
 
 def main():
     """Main setup function"""
-    print("Reddit Post Sorter - Setup")
+    print("Flask Weather Station - Setup")
     print("=" * 30)
     
     # Install requirements
@@ -54,7 +54,7 @@ def main():
     print("\n" + "=" * 30)
     print("Setup completed successfully!")
     print("\nNext steps:")
-    print("1. Edit the .env file with your Reddit API credentials")
+    print("1. Edit the .env file with your Mapbox and Tomorrow.io API keys")
     print("2. Run: python app.py")
     print("3. Open http://localhost:5000 in your browser")
     print("\nFor detailed setup instructions, see README.md")

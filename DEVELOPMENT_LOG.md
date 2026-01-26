@@ -274,16 +274,105 @@ This file tracks all prompts/requests made during development and the correspond
 
 ---
 
+## Session: January 26, 2026
+
+### 15. Rebuild as Flask Weather Station (Pi Weather UI)
+**Prompt:** "I want to build a weather app closely based on https://github.com/elewin/pi-weather-station. The difference I want you to build it based on the python / flask framework. The UI should remain closely the same except for the highlighted areas in the picture attached... instead it should have blocks containing each day's weather. (high / low, sunrise sunset, weather condition) Please ask me if anything doesn't make sense. Also please provide a VERY detailed log of why you made the decisions you did in terms of setting up the project."
+
+**Decision Log (Very Detailed):**
+
+1. **Single-file Flask app vs. multi-module structure**
+   - **Decision:** Kept the application in a single `app.py` file.
+   - **Why:** The goal was to deliver a UI-focused weather dashboard with a small set of routes and minimal backend complexity. A single file keeps onboarding simple, mirrors the original project’s simplicity, and avoids unnecessary structure for a straightforward display app.
+   - **Tradeoff:** For larger feature sets (user accounts, multiple pages, background jobs), a multi-module structure would scale better, but was intentionally avoided to keep the project lightweight.
+
+2. **API providers**
+   - **Decision:** Used Mapbox for geocoding and static map tiles, and Tomorrow.io (ClimaCell v4) for weather data.
+   - **Why:** These match the original pi-weather-station requirements and keep the app aligned with the requested data sources. Mapbox provides reliable geocoding, and Tomorrow.io v4 timelines deliver both current conditions and daily forecasts in a single call.
+   - **Tradeoff:** This introduces two API keys, but preserves parity with the original project and avoids mixing providers.
+
+3. **Static Map tiles instead of interactive Mapbox GL**
+   - **Decision:** Rendered a Mapbox static image inside the left panel rather than an interactive JS map.
+   - **Why:** The UI target is a display-style dashboard. A static tile is lighter, easier to theme, and reduces client-side complexity while still providing the "radar map" visual that anchors the layout.
+   - **Tradeoff:** No pan/zoom interactivity. To preserve visual affordances, I added non-functional map controls to keep the look aligned with the reference UI.
+
+4. **Charts removed and replaced with daily cards**
+   - **Decision:** Removed 24-hour and 7-day charts and replaced them with daily blocks showing high/low, sunrise/sunset, and condition.
+   - **Why:** This was explicitly requested. Cards are also easier to read at a glance on a wall display, and the data is already available in the Tomorrow.io daily timeline.
+   - **Tradeoff:** Users lose a continuous visual trend line, but gain clear daily summaries.
+
+5. **Fallback sample data path**
+   - **Decision:** Added a sample-data mode that activates when API keys are missing or API calls fail.
+   - **Why:** The project should render immediately for developers without keys and for CI environments running tests. It prevents empty or broken UIs and provides a predictable layout for UI testing.
+   - **Tradeoff:** Sample data may look "real" to users without a banner, so a clear status message is displayed when in sample mode.
+
+6. **Status banner for data source**
+   - **Decision:** Added a status banner that announces when sample data is in use.
+   - **Why:** To eliminate ambiguity and make setup issues visible at a glance, especially when demoing the UI.
+   - **Tradeoff:** Adds an extra element to the layout, but it is subtle and collapses once real data is available.
+
+7. **Minimal caching**
+   - **Decision:** Implemented a simple in-memory cache with a configurable TTL.
+   - **Why:** Weather APIs are rate-limited and can be called frequently if the display refreshes. A short cache window reduces unnecessary calls without complicating the app.
+   - **Tradeoff:** The cache is per-process and resets on restart, which is acceptable for this lightweight app.
+
+8. **Environment-driven configuration**
+   - **Decision:** All runtime values (API keys, default location, units, cache TTL) are loaded from `.env` with sensible defaults.
+   - **Why:** Keeps secrets out of code, matches common Flask workflow, and lets deployments adjust behavior without code changes.
+   - **Tradeoff:** Developers must create a `.env` file. To reduce friction, the `env_example.txt` template was updated and the README provides explicit steps.
+
+9. **UI styling strategy**
+   - **Decision:** A custom CSS theme (dark, high contrast) with Inter font and accent blue was used instead of Bootstrap.
+   - **Why:** The reference UI is a dashboard, not a form-heavy site. Custom styling offers tighter control over layout, spacing, and color to mimic the pi-weather-station aesthetic.
+   - **Tradeoff:** Slightly more CSS to maintain, but the resulting layout is closer to the intended design.
+
+10. **Accessibility considerations**
+    - **Decision:** Added labels for form inputs and ensured all `<img>` tags include `alt` attributes.
+    - **Why:** Tests validate alt text and label presence. It improves accessibility and keeps the UI tests stable.
+    - **Tradeoff:** None; this is standard best practice.
+
+11. **Testing strategy**
+    - **Decision:** Updated Selenium UI tests to validate the new weather layout and forced sample mode in the test fixtures.
+    - **Why:** Tests should be deterministic and not require live API keys. The sample mode ensures predictable DOM structure and prevents flaky network behavior.
+    - **Tradeoff:** Tests validate layout and stability rather than live API correctness, which is acceptable for UI-focused checks.
+
+12. **Removal of Reddit-specific code and dependencies**
+    - **Decision:** Removed SQLAlchemy, PRAW, and related templates/routes.
+    - **Why:** The project is now a weather dashboard. Keeping Reddit code would create confusion, inflate dependencies, and distract from the new purpose.
+    - **Tradeoff:** Any previous Reddit functionality is intentionally dropped to align with the new requirements.
+
+**Summary of Changes:**
+- Replaced `app.py` with a Flask weather dashboard using Mapbox + Tomorrow.io.
+- Added sample data fallback with status messaging.
+- Rebuilt `templates/base.html` and `templates/index.html` for the new layout.
+- Removed unused templates from the old Reddit app.
+- Updated `requirements.txt`, `env_example.txt`, and documentation.
+- Updated Selenium UI tests and fixtures to match the new UI.
+
+**Files Created/Modified:**
+- `app.py` - New weather-focused Flask application
+- `templates/base.html` - New dashboard UI base layout and styles
+- `templates/index.html` - Weather dashboard view
+- `requirements.txt` - Swapped Reddit dependencies for `requests`
+- `env_example.txt` - Updated environment variables and instructions
+- `README.md` - New project documentation
+- `setup.py` - Updated setup instructions
+- `tests/conftest.py` - Simplified fixtures and sample mode
+- `tests/test_ui_basic.py` - New UI tests for weather dashboard
+- `TESTING.md`, `GITHUB_ACTIONS_SETUP.md` - Updated references and examples
+
+---
+
 ## Project Statistics
 
-- **Total Prompts:** 14
-- **Files Created:** 19
-- **Files Modified:** 8 (multiple times)
+- **Total Prompts:** 15
+- **Files Created:** 19 (historical total)
+- **Files Modified:** 16 (multiple times, includes weather rebuild)
 - **Critical Bugs Fixed:** 2
-- **UI/UX Improvements:** 6
-- **Feature Additions:** 4
-- **Documentation Updates:** 3
-- **Testing Infrastructure:** Complete CI/CD pipeline with 15+ UI tests
+- **UI/UX Improvements:** 7
+- **Feature Additions:** 5
+- **Documentation Updates:** 4
+- **Testing Infrastructure:** Updated UI tests for weather dashboard
 
 ---
 
@@ -293,5 +382,5 @@ This file tracks all prompts/requests made during development and the correspond
 
 ---
 
-*Last Updated: October 14, 2025*
+*Last Updated: January 26, 2026*
 
