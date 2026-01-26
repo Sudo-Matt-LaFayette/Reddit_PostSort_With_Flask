@@ -1,285 +1,340 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, Response, stream_with_context
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
-import praw
-import os
-import json
-import time
-from datetime import datetime
+from flask import Flask, render_template, jsonify, request
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
+from urllib import request as urlrequest
+from urllib import parse as urlparse
+import json
+import os
+import time
 
-# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reddit_sorter.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+DEFAULT_LOCATION_NAME = os.getenv("DEFAULT_LOCATION_NAME", "Dallas, Texas")
+DEFAULT_LAT = float(os.getenv("DEFAULT_LAT", "32.7767"))
+DEFAULT_LON = float(os.getenv("DEFAULT_LON", "-96.7970"))
+WEATHER_UNITS = os.getenv("WEATHER_UNITS", "imperial").lower()
+WEATHER_MODE = os.getenv("WEATHER_MODE", "auto").lower()
+WEATHER_CACHE_TTL = int(os.getenv("WEATHER_CACHE_TTL", "600"))
+MAPBOX_ACCESS_TOKEN = os.getenv("MAPBOX_ACCESS_TOKEN", "")
+LOCATIONIQ_API_KEY = os.getenv("LOCATIONIQ_API_KEY", "")
+DEFAULT_MAP_ZOOM = int(os.getenv("DEFAULT_MAP_ZOOM", "8"))
 
-# Database Models
-class Category(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
-    color = db.Column(db.String(7), default='#007bff')  # Hex color code
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    posts = db.relationship('RedditPost', backref='category', lazy=True)
+WEATHER_CACHE = {"timestamp": 0, "lat": None, "lon": None, "units": None, "data": None}
 
-    def __repr__(self):
-        return f'<Category {self.name}>'
 
-class RedditPost(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    reddit_id = db.Column(db.String(20), unique=True, nullable=False)
-    title = db.Column(db.Text, nullable=False)
-    author = db.Column(db.String(50))
-    subreddit = db.Column(db.String(50))
-    url = db.Column(db.Text)
-    selftext = db.Column(db.Text)
-    score = db.Column(db.Integer)
-    num_comments = db.Column(db.Integer)
-    created_utc = db.Column(db.DateTime)
-    saved_at = db.Column(db.DateTime, default=datetime.utcnow)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-    permalink = db.Column(db.Text)
-    is_self = db.Column(db.Boolean, default=False)
-    thumbnail = db.Column(db.String(200))
-    preview_url = db.Column(db.String(500))
+def normalize_units():
+    units = WEATHER_UNITS if WEATHER_UNITS in ("imperial", "metric") else "imperial"
+    temp_unit = "F" if units == "imperial" else "C"
+    wind_unit = "mph" if units == "imperial" else "m/s"
+    return units, temp_unit, wind_unit
 
-    def __repr__(self):
-        return f'<RedditPost {self.reddit_id}: {self.title[:50]}...>'
 
-# Initialize Reddit API
-def get_reddit_instance():
-    return praw.Reddit(
-        client_id=os.environ.get('REDDIT_CLIENT_ID'),
-        client_secret=os.environ.get('REDDIT_CLIENT_SECRET'),
-        user_agent=os.environ.get('REDDIT_USER_AGENT', 'RedditSorter/1.0 by YourUsername'),
-        username=os.environ.get('REDDIT_USERNAME'),
-        password=os.environ.get('REDDIT_PASSWORD')
-    )
+def round_value(value):
+    try:
+        return int(round(float(value)))
+    except (TypeError, ValueError):
+        return None
 
-@app.route('/')
-def index():
-    categories = Category.query.all()
-    posts = RedditPost.query.order_by(RedditPost.saved_at.desc()).limit(20).all()
-    return render_template('index.html', categories=categories, posts=posts)
 
-@app.route('/fetch_saved_posts')
-def fetch_saved_posts():
-    # Redirect to the live progress page
-    return render_template('fetch_progress.html')
+def format_time_str(value):
+    if not value:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return value
+    return parsed.strftime("%I:%M %p").lstrip("0")
 
-@app.route('/fetch_saved_posts_stream')
-def fetch_saved_posts_stream():
-    def generate():
+
+def format_day_label(value):
+    if not value:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return value
+    return parsed.strftime("%a")
+
+
+def map_weather_code(code, is_day=True):
+    if code is None:
+        return "Unknown", "fa-cloud"
+    if code == 0:
+        return "Clear", "fa-sun" if is_day else "fa-moon"
+    if code in (1, 2):
+        return "Partly cloudy", "fa-cloud-sun" if is_day else "fa-cloud"
+    if code == 3:
+        return "Overcast", "fa-cloud"
+    if code in (45, 48):
+        return "Fog", "fa-smog"
+    if code in (51, 53, 55, 56, 57):
+        return "Drizzle", "fa-cloud-rain"
+    if code in (61, 63, 65):
+        return "Rain", "fa-cloud-showers-heavy"
+    if code in (66, 67):
+        return "Freezing rain", "fa-cloud-showers-heavy"
+    if code in (71, 73, 75, 77):
+        return "Snow", "fa-snowflake"
+    if code in (80, 81, 82):
+        return "Rain showers", "fa-cloud-showers-heavy"
+    if code in (85, 86):
+        return "Snow showers", "fa-snowflake"
+    if code in (95, 96, 99):
+        return "Thunderstorm", "fa-bolt"
+    return "Unknown", "fa-cloud"
+
+
+def fetch_json(url, timeout=3):
+    with urlrequest.urlopen(url, timeout=timeout) as response:
+        payload = response.read().decode("utf-8")
+    return json.loads(payload)
+
+
+def get_location_name(lat, lon):
+    if LOCATIONIQ_API_KEY:
+        params = {
+            "key": LOCATIONIQ_API_KEY,
+            "lat": lat,
+            "lon": lon,
+            "format": "json",
+        }
+        url = f"https://us1.locationiq.com/v1/reverse.php?{urlparse.urlencode(params)}"
         try:
-            yield f"data: {json.dumps({'type': 'info', 'message': 'Connecting to Reddit API...'})}\n\n"
-            time.sleep(0.5)
-            
-            reddit = get_reddit_instance()
-            user = reddit.user.me()
-            
-            yield f"data: {json.dumps({'type': 'success', 'message': f'Connected as u/{user.name}'})}\n\n"
-            time.sleep(0.5)
-            
-            yield f"data: {json.dumps({'type': 'info', 'message': 'Fetching saved posts...'})}\n\n"
-            time.sleep(0.5)
-            
-            new_posts = 0
-            skipped_posts = 0
-            total_processed = 0
-            
-            for submission in user.saved(limit=100):  # Fetch last 100 saved posts
-                total_processed += 1
-                
-                # Check if post already exists
-                existing_post = RedditPost.query.filter_by(reddit_id=submission.id).first()
-                if not existing_post:
-                    # Create new post record
-                    try:
-                        post = RedditPost(
-                            reddit_id=submission.id,
-                            title=submission.title,
-                            author=str(submission.author) if submission.author else '[deleted]',
-                            subreddit=submission.subreddit.display_name,
-                            url=submission.url,
-                            selftext=submission.selftext if submission.selftext else '',
-                            score=submission.score,
-                            num_comments=submission.num_comments,
-                            created_utc=datetime.fromtimestamp(submission.created_utc),
-                            permalink=f"https://reddit.com{submission.permalink}",
-                            is_self=submission.is_self,
-                            thumbnail=submission.thumbnail if submission.thumbnail != 'self' else None,
-                            preview_url=submission.preview['images'][0]['source']['url'] if hasattr(submission, 'preview') and submission.preview and submission.preview.get('images') else None
-                        )
-                        db.session.add(post)
-                        db.session.commit()
-                        new_posts += 1
-                        
-                        yield f"data: {json.dumps({'type': 'post_added', 'message': f'Added: {submission.title[:60]}...', 'subreddit': submission.subreddit.display_name, 'new': new_posts, 'skipped': skipped_posts, 'total': total_processed})}\n\n"
-                    except Exception as e:
-                        db.session.rollback()
-                        yield f"data: {json.dumps({'type': 'warning', 'message': f'Error saving post: {str(e)[:50]}'})}\n\n"
-                else:
-                    skipped_posts += 1
-                    if skipped_posts % 10 == 0:  # Show progress every 10 skipped posts
-                        yield f"data: {json.dumps({'type': 'post_skipped', 'message': f'Skipping already saved posts...', 'new': new_posts, 'skipped': skipped_posts, 'total': total_processed})}\n\n"
-                
-                time.sleep(0.1)  # Small delay to make progress visible
-            
-            yield f"data: {json.dumps({'type': 'info', 'message': f'Processing complete! Processed {total_processed} posts.'})}\n\n"
-            yield f"data: {json.dumps({'type': 'success', 'message': f'Successfully added {new_posts} new posts! ({skipped_posts} already existed)'})}\n\n"
-            yield f"data: {json.dumps({'type': 'complete', 'new': new_posts, 'skipped': skipped_posts, 'total': total_processed})}\n\n"
-            
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'message': f'Error: {str(e)}'})}\n\n"
-            db.session.rollback()
-    
-    return Response(stream_with_context(generate()), mimetype='text/event-stream')
+            payload = fetch_json(url, timeout=3)
+            address = payload.get("address", {})
+            city = address.get("city") or address.get("town") or address.get("village")
+            state = address.get("state")
+            country = address.get("country")
+            if city and state:
+                return f"{city}, {state}"
+            if city and country:
+                return f"{city}, {country}"
+            display = payload.get("display_name")
+            if display:
+                return display.split(",")[0]
+        except Exception:
+            pass
+    if abs(lat - DEFAULT_LAT) < 0.01 and abs(lon - DEFAULT_LON) < 0.01:
+        return DEFAULT_LOCATION_NAME
+    return f"{lat:.2f}, {lon:.2f}"
 
-@app.route('/categories')
-def categories():
-    categories = Category.query.all()
-    return render_template('categories.html', categories=categories)
 
-@app.route('/create_category', methods=['POST'])
-def create_category():
-    name = request.form.get('name').strip()
-    color = request.form.get('color', '#007bff')
-    
-    if not name:
-        flash('Category name is required!', 'error')
-        return redirect(url_for('categories'))
-    
-    existing = Category.query.filter_by(name=name).first()
-    if existing:
-        flash('Category with this name already exists!', 'error')
-        return redirect(url_for('categories'))
-    
-    category = Category(name=name, color=color)
-    db.session.add(category)
-    db.session.commit()
-    
-    flash(f'Category "{name}" created successfully!', 'success')
-    return redirect(url_for('categories'))
+def build_weather_payload(lat, lon, current, daily, temp_unit, wind_unit):
+    location_name = get_location_name(lat, lon)
+    sun_times = {"sunrise": "", "sunset": ""}
+    if daily:
+        sun_times = {"sunrise": daily[0]["sunrise"], "sunset": daily[0]["sunset"]}
+    return {
+        "location": {"name": location_name, "lat": lat, "lon": lon},
+        "current": current,
+        "sun": sun_times,
+        "daily": daily,
+        "units": {"temp": temp_unit, "wind": wind_unit},
+        "updated_at": datetime.utcnow().isoformat() + "Z",
+    }
 
-@app.route('/update_category/<int:category_id>', methods=['POST'])
-def update_category(category_id):
-    category = Category.query.get_or_404(category_id)
-    category.name = request.form.get('name').strip()
-    category.color = request.form.get('color', '#007bff')
-    
-    if not category.name:
-        flash('Category name is required!', 'error')
-        return redirect(url_for('categories'))
-    
-    db.session.commit()
-    flash(f'Category "{category.name}" updated successfully!', 'success')
-    return redirect(url_for('categories'))
 
-@app.route('/delete_category/<int:category_id>')
-def delete_category(category_id):
-    category = Category.query.get_or_404(category_id)
-    
-    # Move posts in this category to uncategorized
-    posts_in_category = RedditPost.query.filter_by(category_id=category_id).all()
-    for post in posts_in_category:
-        post.category_id = None
-    
-    db.session.delete(category)
-    db.session.commit()
-    
-    flash(f'Category "{category.name}" deleted successfully!', 'success')
-    return redirect(url_for('categories'))
+def fetch_open_meteo(lat, lon):
+    units, temp_unit, wind_unit = normalize_units()
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "current_weather": "true",
+        "hourly": "relativehumidity_2m,precipitation_probability,cloudcover",
+        "daily": "temperature_2m_max,temperature_2m_min,sunrise,sunset,weathercode",
+        "timezone": "auto",
+        "temperature_unit": "fahrenheit" if units == "imperial" else "celsius",
+        "windspeed_unit": "mph" if units == "imperial" else "ms",
+    }
+    url = f"https://api.open-meteo.com/v1/forecast?{urlparse.urlencode(params)}"
+    payload = fetch_json(url, timeout=3)
 
-@app.route('/assign_category/<int:post_id>', methods=['POST'])
-def assign_category(post_id):
-    post = RedditPost.query.get_or_404(post_id)
-    category_id = request.form.get('category_id')
-    
-    if category_id:
-        category_id = int(category_id)
-        category = Category.query.get(category_id)
-        if category:
-            post.category_id = category_id
-        else:
-            flash('Invalid category selected!', 'error')
-            return redirect(url_for('index'))
+    current_weather = payload.get("current_weather", {})
+    current_time = current_weather.get("time")
+    hourly = payload.get("hourly", {})
+    hourly_times = hourly.get("time", [])
+    try:
+        hourly_idx = hourly_times.index(current_time) if current_time in hourly_times else 0
+    except ValueError:
+        hourly_idx = 0
+
+    humidity = round_value(_safe_get(hourly.get("relativehumidity_2m"), hourly_idx))
+    precip = round_value(_safe_get(hourly.get("precipitation_probability"), hourly_idx))
+    cloud = round_value(_safe_get(hourly.get("cloudcover"), hourly_idx))
+    is_day = current_weather.get("is_day", 1) == 1
+    condition, icon = map_weather_code(current_weather.get("weathercode"), is_day=is_day)
+
+    current = {
+        "temp": round_value(current_weather.get("temperature")),
+        "condition": condition,
+        "icon": icon,
+        "humidity": humidity,
+        "precip_probability": precip,
+        "cloud_cover": cloud,
+        "wind_speed": round_value(current_weather.get("windspeed")),
+        "wind_unit": wind_unit,
+        "temp_unit": temp_unit,
+    }
+
+    daily_payload = payload.get("daily", {})
+    daily = []
+    for date, high, low, sunrise, sunset, code in zip(
+        daily_payload.get("time", []),
+        daily_payload.get("temperature_2m_max", []),
+        daily_payload.get("temperature_2m_min", []),
+        daily_payload.get("sunrise", []),
+        daily_payload.get("sunset", []),
+        daily_payload.get("weathercode", []),
+    ):
+        daily_condition, daily_icon = map_weather_code(code, is_day=True)
+        daily.append(
+            {
+                "date": date,
+                "day": format_day_label(date),
+                "high": round_value(high),
+                "low": round_value(low),
+                "condition": daily_condition,
+                "icon": daily_icon,
+                "sunrise": format_time_str(sunrise),
+                "sunset": format_time_str(sunset),
+            }
+        )
+
+    weather_payload = build_weather_payload(lat, lon, current, daily, temp_unit, wind_unit)
+    weather_payload["meta"] = {"source": "open-meteo", "mode": "live"}
+    return weather_payload
+
+
+def build_sample_weather(lat, lon):
+    units, temp_unit, wind_unit = normalize_units()
+    base_date = datetime.now()
+    base_high = 95
+    base_low = 75
+    base_temp = 92
+    base_wind = 8
+    conditions = [
+        ("Partly cloudy", "fa-cloud-sun"),
+        ("Sunny", "fa-sun"),
+        ("Overcast", "fa-cloud"),
+        ("Rain showers", "fa-cloud-showers-heavy"),
+        ("Clear", "fa-moon"),
+        ("Thunderstorm", "fa-bolt"),
+        ("Fog", "fa-smog"),
+    ]
+
+    def convert_temp(value):
+        if units == "metric":
+            return (value - 32) * 5 / 9
+        return value
+
+    def convert_speed(value):
+        if units == "metric":
+            return value * 0.44704
+        return value
+
+    daily = []
+    for offset in range(7):
+        date = base_date + timedelta(days=offset)
+        condition, icon = conditions[offset % len(conditions)]
+        sunrise_dt = date.replace(hour=6, minute=40) + timedelta(minutes=offset)
+        sunset_dt = date.replace(hour=19, minute=55) - timedelta(minutes=offset)
+        daily.append(
+            {
+                "date": date.strftime("%Y-%m-%d"),
+                "day": date.strftime("%a"),
+                "high": round_value(convert_temp(base_high - offset)),
+                "low": round_value(convert_temp(base_low - offset)),
+                "condition": condition,
+                "icon": icon,
+                "sunrise": sunrise_dt.strftime("%I:%M %p").lstrip("0"),
+                "sunset": sunset_dt.strftime("%I:%M %p").lstrip("0"),
+            }
+        )
+
+    current = {
+        "temp": round_value(convert_temp(base_temp)),
+        "condition": daily[0]["condition"],
+        "icon": daily[0]["icon"],
+        "humidity": 50,
+        "precip_probability": 40,
+        "cloud_cover": 35,
+        "wind_speed": round_value(convert_speed(base_wind)),
+        "wind_unit": wind_unit,
+        "temp_unit": temp_unit,
+    }
+
+    weather_payload = build_weather_payload(lat, lon, current, daily, temp_unit, wind_unit)
+    weather_payload["meta"] = {"source": "sample", "mode": "sample"}
+    return weather_payload
+
+
+def _safe_get(values, idx):
+    if not values:
+        return None
+    if idx is None or idx < 0 or idx >= len(values):
+        return values[0]
+    return values[idx]
+
+
+def get_weather_data(lat=None, lon=None):
+    if lat is None:
+        lat = DEFAULT_LAT
+    if lon is None:
+        lon = DEFAULT_LON
+
+    cache_key = (round(lat, 4), round(lon, 4), WEATHER_UNITS)
+    now = time.time()
+    if (
+        WEATHER_CACHE["data"]
+        and WEATHER_CACHE["lat"] == cache_key[0]
+        and WEATHER_CACHE["lon"] == cache_key[1]
+        and WEATHER_CACHE["units"] == cache_key[2]
+        and now - WEATHER_CACHE["timestamp"] < WEATHER_CACHE_TTL
+    ):
+        return WEATHER_CACHE["data"]
+
+    weather_payload = None
+    mode = WEATHER_MODE
+    if mode == "sample":
+        weather_payload = build_sample_weather(lat, lon)
     else:
-        post.category_id = None
-    
-    db.session.commit()
-    flash('Post category updated successfully!', 'success')
-    return redirect(url_for('index'))
+        try:
+            weather_payload = fetch_open_meteo(lat, lon)
+        except Exception:
+            weather_payload = build_sample_weather(lat, lon)
 
-@app.route('/posts')
-def posts():
-    category_id = request.args.get('category_id', type=int)
-    show_uncategorized = request.args.get('uncategorized', type=str)
-    search = request.args.get('search', '').strip()
-    
-    query = RedditPost.query
-    
-    if category_id:
-        query = query.filter_by(category_id=category_id)
-    elif show_uncategorized == 'true':
-        # Show only posts without a category
-        query = query.filter_by(category_id=None)
-    
-    if search:
-        query = query.filter(RedditPost.title.contains(search))
-    
-    posts = query.order_by(RedditPost.saved_at.desc()).all()
-    categories = Category.query.all()
-    
-    return render_template('posts.html', posts=posts, categories=categories, 
-                         selected_category_id=category_id, search_term=search, 
-                         show_uncategorized=show_uncategorized)
+    WEATHER_CACHE.update(
+        {
+            "timestamp": now,
+            "lat": cache_key[0],
+            "lon": cache_key[1],
+            "units": cache_key[2],
+            "data": weather_payload,
+        }
+    )
+    return weather_payload
 
-@app.route('/api/posts')
-def api_posts():
-    category_id = request.args.get('category_id', type=int)
-    search = request.args.get('search', '').strip()
-    
-    query = RedditPost.query
-    
-    if category_id:
-        query = query.filter_by(category_id=category_id)
-    
-    if search:
-        query = query.filter(RedditPost.title.contains(search))
-    
-    posts = query.order_by(RedditPost.saved_at.desc()).all()
-    
-    return jsonify([{
-        'id': post.id,
-        'title': post.title,
-        'author': post.author,
-        'subreddit': post.subreddit,
-        'url': post.url,
-        'score': post.score,
-        'num_comments': post.num_comments,
-        'created_utc': post.created_utc.isoformat() if post.created_utc else None,
-        'saved_at': post.saved_at.isoformat(),
-        'category_id': post.category_id,
-        'category_name': post.category.name if post.category else None,
-        'category_color': post.category.color if post.category else None,
-        'permalink': post.permalink,
-        'is_self': post.is_self,
-        'thumbnail': post.thumbnail,
-        'preview_url': post.preview_url
-    } for post in posts])
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        
-        # Create default "Uncategorized" category if it doesn't exist
-        if not Category.query.filter_by(name='Uncategorized').first():
-            uncategorized = Category(name='Uncategorized', color='#6c757d')
-            db.session.add(uncategorized)
-            db.session.commit()
-    
+@app.route("/")
+def index():
+    weather = get_weather_data()
+    app_config = {
+        "mapboxToken": MAPBOX_ACCESS_TOKEN,
+        "mapZoom": DEFAULT_MAP_ZOOM,
+        "mapStyle": "dark-v11",
+    }
+    return render_template("index.html", weather=weather, app_config=app_config)
+
+
+@app.route("/api/weather")
+def api_weather():
+    lat = request.args.get("lat", type=float)
+    lon = request.args.get("lon", type=float)
+    weather = get_weather_data(lat=lat, lon=lon)
+    return jsonify(weather)
+
+
+if __name__ == "__main__":
     app.run(debug=True)

@@ -1,18 +1,20 @@
-# Reddit API Configuration
-REDDIT_CLIENT_ID=your_client_id_here
-REDDIT_CLIENT_SECRET=your_client_secret_here
-REDDIT_USER_AGENT=RedditSorter/1.0 by YourUsername
-REDDIT_USERNAME=your_reddit_username
-REDDIT_PASSWORD=your_reddit_password
+# Weather API Configuration
+# Optional Mapbox token (improves map styling)
+MAPBOX_ACCESS_TOKEN=your_mapbox_token_here
 
-# Flask Configuration
-SECRET_KEY=your-secret-key-here-change-this-in-production
+# Optional LocationIQ key (reverse geocoding for city names)
+LOCATIONIQ_API_KEY=your_locationiq_key_here
 
-# Instructions:
-# 1. Copy this file to .env
-# 2. Fill in your actual Reddit API credentials
-# 3. To get Reddit API credentials:
-#    - Go to https://www.reddit.com/prefs/apps
-#    - Click "Create App" or "Create Another App"
-#    - Choose "script" as the app type
-#    - Use the client_id and client_secret from your app
+# Weather Settings
+DEFAULT_LOCATION_NAME=Dallas, Texas
+DEFAULT_LAT=32.7767
+DEFAULT_LON=-96.7970
+WEATHER_UNITS=imperial
+WEATHER_MODE=auto
+WEATHER_CACHE_TTL=600
+DEFAULT_MAP_ZOOM=8
+
+# Notes:
+# - WEATHER_MODE: "auto" tries live data and falls back to sample data on failure.
+# - WEATHER_MODE: "sample" always uses built-in sample data.
+# - WEATHER_UNITS: "imperial" (F, mph) or "metric" (C, m/s).
