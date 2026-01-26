@@ -73,7 +73,7 @@ your-project/
 ### Directory Layout
 
 ```
-Reddit Sort Python Flask/
+Flask Weather Station/
 │
 ├── .github/                          # GitHub-specific files
 │   └── workflows/                    # GitHub Actions workflows
@@ -355,7 +355,7 @@ class TestBasicUI:
         driver.get(flask_server)  # flask_server = "http://127.0.0.1:5555"
         
         # Check title
-        assert "Reddit Post Sorter" in driver.title
+        assert "Weather Station" in driver.title
         
         # Check heading exists
         heading = driver.find_element(By.TAG_NAME, "h2")
@@ -1037,7 +1037,7 @@ Before committing your CI/CD setup:
 
 **Last Updated:** November 4, 2025
 **Author:** Development Team
-**Project:** Reddit Post Sorter
+**Project:** Flask Weather Station
 
 *This document can be copied and adapted for any Python web application project requiring UI testing with GitHub Actions.*
 

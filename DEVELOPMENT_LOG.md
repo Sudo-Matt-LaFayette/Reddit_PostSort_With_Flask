@@ -1,4 +1,4 @@
-# Reddit Post Sorter - Development Log
+# Flask Weather Station - Development Log
 
 This file tracks all prompts/requests made during development and the corresponding changes implemented.
 
@@ -274,15 +274,52 @@ This file tracks all prompts/requests made during development and the correspond
 
 ---
 
+## Session: January 26, 2026
+
+### 15. Flask Weather Station Rebuild
+**Prompt:** "I want to build a weather app closely based on https://github.com/elewin/pi-weather-station. The difference I want you to build it based on the python / flask framework. The UI should remain closely the same except for the highlighted areas in the picture attached... instead it should have blocks containing each day's weather. (high / low, sunrise sunset, weather condition) Please ask me if anything doesn't make sense. Also please provide a VERY detailed log of why you made the decisions you did in terms of setting up the project."
+
+**Summary:** Rebuilt the project as a Flask-based weather station app:
+- Replaced the Reddit-post backend with a weather-focused Flask backend
+- Added Open-Meteo live data retrieval with a sample-data fallback for offline use
+- Implemented a map + info panel UI that mirrors the Pi Weather Station layout
+- Replaced chart panels with daily forecast blocks (high/low, sunrise/sunset, condition)
+- Added Leaflet map integration with optional Mapbox styling
+- Updated Selenium UI tests to validate the new weather UI
+- Rewrote documentation and environment configuration templates
+- Added a detailed setup decision log explaining architectural choices
+
+**Files Created:**
+- `static/css/weather.css` - Weather station UI styling
+- `static/js/weather.js` - Map + UI interactivity
+- `SETUP_DECISIONS_LOG.md` - Detailed setup decision rationale
+
+**Files Modified:**
+- `app.py` - New Flask weather backend with API endpoint
+- `templates/base.html` - New base layout and assets
+- `templates/index.html` - New weather station UI
+- `requirements.txt` - Removed Reddit dependencies
+- `env_example.txt` - New weather configuration template
+- `README.md` - Updated project documentation
+- `tests/conftest.py` - Updated fixtures for new app
+- `tests/test_ui_basic.py` - Weather-focused UI tests
+- `setup.py` - Updated setup script for weather app
+- `run_tests.py` - Updated test runner description
+- `TESTING.md` - Updated testing documentation
+- `QUICKSTART_TESTING.md` - Updated quick start guide
+- `GITHUB_ACTIONS_SETUP.md` - Updated CI setup notes
+
+---
+
 ## Project Statistics
 
-- **Total Prompts:** 14
-- **Files Created:** 19
-- **Files Modified:** 8 (multiple times)
+- **Total Prompts:** 15
+- **Files Created:** 22
+- **Files Modified:** 16 (multiple times)
 - **Critical Bugs Fixed:** 2
-- **UI/UX Improvements:** 6
-- **Feature Additions:** 4
-- **Documentation Updates:** 3
+- **UI/UX Improvements:** 7
+- **Feature Additions:** 5
+- **Documentation Updates:** 4
 - **Testing Infrastructure:** Complete CI/CD pipeline with 15+ UI tests
 
 ---
@@ -293,5 +330,5 @@ This file tracks all prompts/requests made during development and the correspond
 
 ---
 
-*Last Updated: October 14, 2025*
+*Last Updated: January 26, 2026*
 
