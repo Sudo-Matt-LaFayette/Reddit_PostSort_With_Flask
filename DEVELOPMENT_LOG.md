@@ -1,4 +1,4 @@
-# Reddit Post Sorter - Development Log
+# Flask Weather Station - Development Log
 
 This file tracks all prompts/requests made during development and the corresponding changes implemented.
 
@@ -274,16 +274,104 @@ This file tracks all prompts/requests made during development and the correspond
 
 ---
 
+## Session: January 26, 2026
+
+### 15. Flask Weather Station Rebuild (pi-weather-station inspired)
+**Prompt:** "I want to build a weather app closely based on https://github.com/elewin/pi-weather-station. The difference I want you to build it based on the python / flask framework. The UI should remain closely the same except for the highlighted areas in the picture attached... instead it should have blocks containing each day's weather. (high / low, sunrise sunset, weather condition) Please ask me if anything doesn't make sense. Also please provide a VERY detailed log of why you made the decisions you did in terms of setting up the project."
+
+**Summary:** Rebuilt the repository into a Flask weather dashboard with a dark, map-forward UI and daily forecast blocks. Removed Reddit-specific backend logic, database models, and templates. Added weather API integration scaffolding with a safe fallback path, refreshed documentation, and aligned UI tests with the new layout.
+
+**Detailed Decision Log (Why each setup choice was made):**
+
+1. **Single-page dashboard architecture**
+   - The original pi-weather-station UI is a single-screen display, so the Flask app was reduced to a single primary route (`/`) to keep the experience immersive and focused.
+   - This also avoids extra navigation clutter and keeps the implementation aligned with the "weather station display" concept.
+
+2. **Removal of database + Reddit-specific components**
+   - The Reddit/Post Sorter functionality (PRAW, SQLAlchemy, CRUD routes) was entirely unrelated to the new goal.
+   - Removing them simplified the stack, reduced dependencies, and eliminated unnecessary persistence or schema complexity.
+   - This decision ensures faster startup and fewer failure points (no DB migrations, no ORM state).
+
+3. **Mapbox for map panel**
+   - The pi-weather-station UI centers around a map visual. Mapbox provides reliable tiles + geocoding, matching the original design intent.
+   - A **static Mapbox image** is used instead of embedding Mapbox GL JS to keep load time low and avoid extra JS runtime complexity.
+   - If a Mapbox key is missing, the app falls back to a gradient map placeholder so the UI still renders.
+
+4. **Tomorrow.io (ClimaCell v4) for weather data**
+   - The original project references ClimaCell v4; Tomorrow.io is the current API for that platform.
+   - The backend uses the `/v4/weather/forecast` endpoint with daily + hourly timelines to feed both current conditions and daily blocks.
+   - This preserves API alignment with the original project while making the Flask app self-contained.
+
+5. **Sample data fallback for reliability**
+   - When API keys are not present (especially in CI or local dev), the app must still render.
+   - A deterministic fallback forecast was added so that:
+     - UI tests can run without external dependencies.
+     - Users can see the layout immediately before configuring keys.
+   - The UI clearly indicates when sample data is in use.
+
+6. **Daily forecast blocks replacing charts**
+   - The user specifically requested replacing the highlighted chart area with daily blocks.
+   - The UI now renders a grid of cards with:
+     - Day name and date
+     - High/low temperatures
+     - Sunrise/sunset
+     - Condition + icon
+   - This preserves the overall right-panel structure while meeting the new requirement.
+
+7. **Timezone handling without extra dependencies**
+   - Python's built-in `zoneinfo` was used to avoid adding `pytz` or `dateutil`.
+   - This keeps dependencies minimal and avoids extra packaging needs while still formatting local sunrise/sunset times.
+
+8. **Normalized data model passed to templates**
+   - The backend constructs a simple `weather` dictionary (location, time, current, daily) so the Jinja templates remain clean.
+   - This is intentional: the view layer should only render, not parse API responses.
+
+9. **Dark UI palette + layout grid**
+   - A two-panel grid (map + info) closely mirrors the pi-weather-station split.
+   - A dark palette was selected to match the original display and improve contrast for white data text.
+   - Grid + responsive breakpoints ensure the interface collapses cleanly on tablet/mobile.
+
+10. **Testing adjustments**
+    - UI tests were rewritten to validate the new layout (map panel, current conditions, daily blocks).
+    - The DB test setup was removed, eliminating the need for test database creation.
+    - Tests now assert on the presence of blocks rather than Reddit-specific elements.
+
+11. **Documentation overhaul**
+    - README, env template, and setup instructions were replaced to match the weather stack.
+    - API key instructions now reference Mapbox and Tomorrow.io.
+    - Usage notes explain fallback behavior and location overrides.
+
+**Files Modified:**
+- `app.py` - Rebuilt Flask backend for weather data and layout context
+- `templates/base.html` - New dark, grid-based weather layout styling
+- `templates/index.html` - Single dashboard page with daily blocks
+- `requirements.txt` - Replaced Reddit/DB deps with requests
+- `env_example.txt` - New API key and location configuration
+- `setup.py` - Updated setup messaging for weather app
+- `README.md` - New weather app documentation
+- `tests/test_ui_basic.py` - Updated Selenium tests for weather UI
+- `tests/conftest.py` - Removed DB setup
+- `run_tests.py` - Updated test runner description
+- `DEVELOPMENT_LOG.md` - This detailed log entry
+
+**Files Deleted:**
+- `templates/categories.html`
+- `templates/posts.html`
+- `templates/fetch_progress.html`
+
+---
+
 ## Project Statistics
 
-- **Total Prompts:** 14
+- **Total Prompts:** 15
 - **Files Created:** 19
-- **Files Modified:** 8 (multiple times)
+- **Files Modified:** 10 (multiple times)
+- **Files Deleted:** 3
 - **Critical Bugs Fixed:** 2
-- **UI/UX Improvements:** 6
-- **Feature Additions:** 4
-- **Documentation Updates:** 3
-- **Testing Infrastructure:** Complete CI/CD pipeline with 15+ UI tests
+- **UI/UX Improvements:** 7
+- **Feature Additions:** 5
+- **Documentation Updates:** 4
+- **Testing Infrastructure:** Complete CI/CD pipeline with Selenium UI tests
 
 ---
 
@@ -293,5 +381,5 @@ This file tracks all prompts/requests made during development and the correspond
 
 ---
 
-*Last Updated: October 14, 2025*
+*Last Updated: January 26, 2026*
 

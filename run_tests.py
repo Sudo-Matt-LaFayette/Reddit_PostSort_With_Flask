@@ -45,7 +45,7 @@ def run_tests(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run UI tests for Reddit Post Sorter")
+    parser = argparse.ArgumentParser(description="Run UI tests for Flask Weather Station")
     
     parser.add_argument("-v", "--verbose", action="store_true",
                        help="Verbose output")

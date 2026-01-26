@@ -4,17 +4,17 @@ Pytest configuration and fixtures for UI testing
 import pytest
 import os
 import sys
+import threading
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-import threading
-import time
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app import app, db
+from app import app
 
 
 def pytest_addoption(parser):
@@ -30,18 +30,7 @@ def pytest_addoption(parser):
 def test_app():
     """Create and configure a test Flask app"""
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test_reddit_sorter.db'
-    app.config['WTF_CSRF_ENABLED'] = False
-    
-    with app.app_context():
-        db.create_all()
-        yield app
-        db.session.remove()
-        db.drop_all()
-        
-        # Clean up test database
-        if os.path.exists('test_reddit_sorter.db'):
-            os.remove('test_reddit_sorter.db')
+    yield app
 
 @pytest.fixture(scope="session")
 def flask_server(test_app):

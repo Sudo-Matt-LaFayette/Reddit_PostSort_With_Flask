@@ -73,7 +73,7 @@ your-project/
 ### Directory Layout
 
 ```
-Reddit Sort Python Flask/
+Flask Weather Station/
 │
 ├── .github/                          # GitHub-specific files
 │   └── workflows/                    # GitHub Actions workflows
@@ -189,7 +189,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 # Add parent directory to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app import app, db
+from app import app
 
 # ============================================
 # COMMAND-LINE OPTIONS
@@ -215,20 +215,7 @@ def test_app():
     """
     # Configure for testing
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test_reddit_sorter.db'
-    app.config['WTF_CSRF_ENABLED'] = False
-    
-    # Create test database
-    with app.app_context():
-        db.create_all()
-        yield app
-        
-        # Cleanup after all tests
-        db.session.remove()
-        db.drop_all()
-        
-        if os.path.exists('test_reddit_sorter.db'):
-            os.remove('test_reddit_sorter.db')
+    yield app
 
 # ============================================
 # FLASK SERVER FIXTURE
@@ -355,7 +342,7 @@ class TestBasicUI:
         driver.get(flask_server)  # flask_server = "http://127.0.0.1:5555"
         
         # Check title
-        assert "Reddit Post Sorter" in driver.title
+        assert "Weather Station" in driver.title
         
         # Check heading exists
         heading = driver.find_element(By.TAG_NAME, "h2")
@@ -593,7 +580,7 @@ env:
 
 **What is `github.workspace`?**
 - Path to your repository on the runner
-- Example: `/home/runner/work/reddit-post-sorter/reddit-post-sorter`
+- Example: `/home/runner/work/flask-weather-station/flask-weather-station`
 
 **Why set PYTHONPATH?**
 - Ensures Python can import your modules
@@ -880,7 +867,7 @@ touch requirements-dev.txt
 **Step 3: Modify for your project**
 ```python
 # In conftest.py, change:
-from app import app, db
+from app import app
 # To your app's import path
 
 # Adjust ports if needed:
@@ -1037,7 +1024,7 @@ Before committing your CI/CD setup:
 
 **Last Updated:** November 4, 2025
 **Author:** Development Team
-**Project:** Reddit Post Sorter
+**Project:** Flask Weather Station
 
 *This document can be copied and adapted for any Python web application project requiring UI testing with GitHub Actions.*
 

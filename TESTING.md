@@ -1,6 +1,6 @@
 # Testing Documentation
 
-This document provides comprehensive information about testing the Reddit Post Sorter application.
+This document provides comprehensive information about testing the Flask Weather Station application.
 
 ## Test Framework
 
@@ -345,7 +345,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 - [ ] Test file upload functionality
 - [ ] Test error handling and validation
 - [ ] Test performance (page load times)
-- [ ] Test with mock Reddit API data
+- [ ] Test with mock weather API data
 - [ ] Visual regression testing with screenshots
 - [ ] Test keyboard navigation
 - [ ] Test screen reader compatibility
